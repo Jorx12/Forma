@@ -1,4 +1,4 @@
-import type { DayKey, Exercise, Profile, Routine, RoutineItem, Session, SessionEntry, SetLog, SuggestionKind } from '../db/types';
+import type { DayKey, Exercise, Profile, RoutineItem, Session, SessionEntry, SetLog, SuggestionKind } from '../db/types';
 import { dayNum, toISODate, weekStartISO } from './dates';
 import { incrementFor } from './generator';
 import { doneSets, summarizeEntry } from './stats';
@@ -52,8 +52,8 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   const last = hist[0].entry;
   const lastW = workingWeight(last);
   const lastSummary = summarizeEntry(last);
-  // Fem servir el rang actual de la rutina (pot haver canviat)
-  const lastAdj: SessionEntry = { ...last, target: { ...last.target, repMin: item.repMin, repMax: item.repMax, sets: item.sets } };
+  // Rang de repeticions actual de la rutina; el nombre de sèries és el que es va planificar aquell dia
+  const lastAdj: SessionEntry = { ...last, target: { ...last.target, repMin: item.repMin, repMax: item.repMax } };
 
   if (deload) {
     return {
@@ -69,7 +69,7 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   }
   if (missedMin(lastAdj)) {
     const prev = hist[1]?.entry;
-    const prevAdj = prev && { ...prev, target: { ...prev.target, repMin: item.repMin, repMax: item.repMax, sets: item.sets } };
+    const prevAdj = prev && { ...prev, target: { ...prev.target, repMin: item.repMin, repMax: item.repMax } };
     if (prevAdj && missedMin(prevAdj) && workingWeight(prevAdj) >= lastW) {
       const lower = roundTo(lastW * 0.92, inc);
       return {
@@ -121,10 +121,9 @@ export function deloadDue(profile: Profile, sessions: Session[], date = toISODat
   return { due: weeks >= n, weeks };
 }
 
-export function buildEntries(routine: Routine, day: DayKey, exercises: Exercise[], profile: Profile, sessions: Session[], deload: boolean): SessionEntry[] {
+export function buildEntries(items: RoutineItem[], exercises: Exercise[], profile: Profile, sessions: Session[], deload: boolean): SessionEntry[] {
   const byId = new Map(exercises.map((e) => [e.id, e]));
-  const d = routine.days.find((x) => x.key === day);
-  return (d?.items ?? []).map((it) => buildEntry(it, byId.get(it.exerciseId), profile, sessions, deload));
+  return items.map((it) => buildEntry(it, byId.get(it.exerciseId), profile, sessions, deload));
 }
 
 export function buildEntry(it: RoutineItem, e: Exercise | undefined, profile: Profile, sessions: Session[], deload: boolean): SessionEntry {

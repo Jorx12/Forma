@@ -10,7 +10,7 @@ Quadern personal de pes i gimnàs. És una PWA en català, pensada per al mòbil
 |---|---|
 | **Inici** | Proper entrenament, entrenaments de la setmana (x/3) i ratxa, pes i progrés cap a 75 i 70 kg, calories i proteïna, avís de pesar-te (més de 7 dies) i de fer còpia (més de 14 dies) |
 | **Pes** | Registre ràpid (pes, % de greix, nota), gràfic amb la línia objectiu i les finestres de les fites, IMC, ritme real (regressió de 6 setmanes) comparat amb el necessari, previsió de dates, estat i avís si perds més de l'1 % per setmana durant 3 setmanes |
-| **Entrenar** | Dia proposat (A→B→C), sèries amb botons +/− preomplertes amb l'última vegada, temporitzador de descans amb so i vibració, esforç per sèrie, checklist d'escalfament i d'estiraments per a la fascitis, resum amb volum i rècords. Si tanques l'app, pots continuar l'entrenament |
+| **Entrenar** | Dia proposat (A→B→C), sèries amb botons +/− preomplertes amb l'última vegada, temporitzador de descans amb so i vibració, esforç per sèrie, checklist d'escalfament, durada triable de 40 min a 2 h, resum amb volum i rècords. Si tanques l'app, pots continuar l'entrenament |
 | **Progrés** | Historial, evolució per exercici (pes màxim, 1RM d'Epley i volum) i constància setmanal |
 | **Més** | Perfil, referència calòrica (Mifflin-St Jeor), rutina (generar, substituir, editar), catàleg de màquines, còpia de seguretat, dades de prova i instal·lació |
 

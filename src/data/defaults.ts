@@ -16,6 +16,7 @@ export const DEFAULT_PROFILE: Profile = {
   ],
   sessionsPerWeek: 3,
   adaptationWeeks: 2,
+  sessionMinutes: 60,
   deloadEveryWeeks: 7,
   defaultIncrementKg: { upper: 2.5, lower: 5 },
   restSec: { compound: 105, isolation: 75 },

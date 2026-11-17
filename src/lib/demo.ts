@@ -73,7 +73,7 @@ export async function loadDemo() {
         finishedAt: new Date(startedAt.getTime() + (50 + Math.round(noise() * 16)) * 60000).toISOString(),
         status: 'feta', flags: { adaptation: w < profile.adaptationWeeks, deload },
         exerciseIds: entries.map((e) => e.exerciseId), entries,
-        checklist: { warmup: ['bici', 'mobilitat'], cooldown: ['bessons', 'soli', 'fascia'] }, isDemo: true,
+        checklist: { warmup: ['bici', 'mobilitat'], cooldown: [] }, isDemo: true,
       });
     }
   }

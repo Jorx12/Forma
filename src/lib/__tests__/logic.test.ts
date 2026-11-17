@@ -3,6 +3,7 @@ import { buildCatalog } from '../../data/catalog';
 import { DEFAULT_PROFILE } from '../../data/defaults';
 import type { Exercise, RoutineItem, Session, SessionEntry } from '../../db/types';
 import { dayNum } from '../dates';
+import { fitDay } from '../duration';
 import { generateRoutine } from '../generator';
 import { nutritionRef } from '../nutrition';
 import { deloadDue, nextDayKey, planFor } from '../progression';
@@ -72,9 +73,9 @@ describe('doble progressió', () => {
 
 describe('generador', () => {
   const { days } = generateRoutine(buildCatalog(), P);
-  it('3 dies de 5–7 exercicis', () => {
+  it('3 dies amb 5–9 exercicis en ordre de prioritat', () => {
     expect(days.map((d) => d.key)).toEqual(['A', 'B', 'C']);
-    for (const d of days) { expect(d.items.length).toBeGreaterThanOrEqual(5); expect(d.items.length).toBeLessThanOrEqual(7); }
+    for (const d of days) { expect(d.items.length).toBeGreaterThanOrEqual(5); expect(d.items.length).toBeLessThanOrEqual(9); }
   });
   it('cada dia té genoll i maluc, i la setmana cobreix els 4 patrons de tren superior', () => {
     for (const d of days) { const s = d.items.map((i) => i.slot); expect(s).toContain('knee'); expect(s).toContain('hip'); }
@@ -105,5 +106,27 @@ describe('pes', () => {
     const a = analyzeWeight(P, data, dayNum('2026-12-08'));
     expect(a.tooFast).toBe(false);
     expect(a.status).toBe('en_cami');
+  });
+});
+
+describe('durada', () => {
+  const cat = buildCatalog();
+  const byId = new Map(cat.map((e) => [e.id, e]));
+  const { days } = generateRoutine(cat, P);
+  it('40 min: 5 exercicis i dins del temps', () => {
+    for (const d of days) {
+      const f = fitDay(d.items, 40, byId);
+      expect(f.items.length).toBe(5);
+      expect(f.minutes).toBeLessThanOrEqual(41);
+      for (const it of f.items) expect(it.sets).toBeGreaterThanOrEqual(2);
+    }
+  });
+  it('més temps → més exercicis o més sèries', () => {
+    for (const d of days) {
+      const vol = (m: number) => fitDay(d.items, m, byId).items.reduce((t, i) => t + i.sets, 0);
+      expect(vol(60)).toBeGreaterThan(vol(40));
+      expect(vol(120)).toBeGreaterThan(vol(60));
+      expect(fitDay(d.items, 120, byId).minutes).toBeLessThanOrEqual(121);
+    }
   });
 });

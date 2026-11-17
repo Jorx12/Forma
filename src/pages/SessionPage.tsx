@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Check, ChevronDown, ChevronUp, Minus, MoreVertical, Plus, Replace, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import { COOLDOWN, WARMUP } from '../data/catalog';
+import { WARMUP } from '../data/catalog';
 import { useExercises, useMeta, useProfile, useSessions } from '../db/hooks';
 import type { Effort, Exercise, Profile, Session, SessionEntry } from '../db/types';
 import { RestTimer, startRest } from '../components/RestTimer';
@@ -125,9 +125,6 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
         ))}
 
         <Button className="w-full" onClick={() => setPicker({ idx: null })}><Plus size={18} /> Afegir exercici</Button>
-
-        <Checklist title="Estiraments per a la fascitis" items={COOLDOWN} checked={session.checklist.cooldown} defaultOpen={doneCount === totalSets && totalSets > 0}
-          onToggle={(id) => save((s) => { s.checklist.cooldown = toggle(s.checklist.cooldown, id); })} />
 
         <Button variant="primary" size="lg" className="w-full" onClick={finish}>Acabar entrenament</Button>
       </div>

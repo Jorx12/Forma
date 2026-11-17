@@ -1,5 +1,6 @@
 import { db, deleteMeta, getMeta, setMeta, uid } from '../db/db';
 import type { DayKey, Session } from '../db/types';
+import { fitDay } from './duration';
 import { buildEntries, isAdaptation } from './progression';
 
 export async function getActiveSession(): Promise<Session | undefined> {
@@ -9,7 +10,7 @@ export async function getActiveSession(): Promise<Session | undefined> {
   return s?.status === 'en_curs' ? s : undefined;
 }
 
-export async function startSession(day: DayKey, deload: boolean): Promise<string> {
+export async function startSession(day: DayKey, deload: boolean, minutes: number): Promise<string> {
   const [profile, routine, exercises, sessions] = await Promise.all([
     db.profile.get('me'),
     db.routines.filter((r) => r.active).first(),
@@ -17,7 +18,9 @@ export async function startSession(day: DayKey, deload: boolean): Promise<string
     db.sessions.toArray(),
   ]);
   if (!profile || !routine) throw new Error('Cal un perfil i una rutina');
-  const entries = buildEntries(routine, day, exercises, profile, sessions, deload);
+  const all = routine.days.find((d) => d.key === day)?.items ?? [];
+  const { items } = fitDay(all, minutes, new Map(exercises.map((e) => [e.id, e])));
+  const entries = buildEntries(items, exercises, profile, sessions, deload);
   const s: Session = {
     id: uid(),
     routineId: routine.id,
@@ -28,6 +31,7 @@ export async function startSession(day: DayKey, deload: boolean): Promise<string
     exerciseIds: entries.map((e) => e.exerciseId),
     entries,
     checklist: { warmup: [], cooldown: [] },
+    targetMinutes: minutes,
   };
   await db.sessions.put(s);
   await setMeta('activeSessionId', s.id);

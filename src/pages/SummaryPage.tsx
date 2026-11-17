@@ -25,7 +25,7 @@ export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) 
       <p className="-mt-2 text-sm text-muted">{fmtLong(s.startedAt.slice(0, 10))} · Dia {s.dayKey}
         {s.flags.adaptation && ' · adaptació'}{s.flags.deload && ' · descàrrega'}{s.isDemo && ' · prova'}</p>
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="Durada" value={fmtDuration(dur)} />
+        <Stat label="Durada" value={fmtDuration(dur)} sub={s.targetMinutes ? `objectiu ${s.targetMinutes} min` : undefined} />
         <Stat label="Volum" value={`${Math.round(sessionVolume(s)).toLocaleString('ca-ES')}`} sub="kg × reps" />
         <Stat label="Sèries" value={sessionSetsDone(s)} />
       </div>

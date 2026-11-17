@@ -137,11 +137,3 @@ export const WARMUP: { id: string; label: string }[] = [
   { id: 'turmell', label: 'Mobilitat de turmell i dits del peu (assegut, 30 s per peu)' },
   { id: 'aproximacio', label: "1–2 sèries d'aproximació lleugeres al primer exercici" },
 ];
-
-export const COOLDOWN: { id: string; label: string }[] = [
-  { id: 'bessons', label: 'Estirament de bessons a la paret, cama estirada (2 × 30 s per cama)' },
-  { id: 'soli', label: 'Estirament de soli a la paret, genoll flexionat (2 × 30 s per cama)' },
-  { id: 'fascia', label: 'Estirament de la fàscia plantar: estirar els dits cap amunt amb la mà (3 × 20 s)' },
-  { id: 'pilota', label: 'Massatge amb pilota sota la planta del peu (1–2 min per peu)' },
-  { id: 'toalla', label: 'Opcional: arrossegar una tovallola amb els dits del peu (1 min)' },
-];

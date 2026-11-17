@@ -1,11 +1,12 @@
 import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCw, Replace, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { COOLDOWN, MUSCLE_LABEL, PATTERN_LABEL, PATTERN_SHORT, WARMUP } from '../data/catalog';
+import { MUSCLE_LABEL, PATTERN_LABEL, PATTERN_SHORT, WARMUP } from '../data/catalog';
 import { db, uid } from '../db/db';
 import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
 import { Badge, Button, Card, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
+import { durationLabel, fitDay, MAX_MINUTES, MIN_MINUTES, sessionMinutes } from '../lib/duration';
 import { defaultItem, generateRoutine, newRoutine, scoreExercise, usable } from '../lib/generator';
 
 export async function createRoutine(exercises: Exercise[], profile: Profile, jitter = 0) {
@@ -32,6 +33,7 @@ export function RoutinePage() {
   const [sheet, setSheet] = useState<SheetState>(null);
   if (!profile || !exercises || routine === undefined) return null;
   const byId = new Map(exercises.map((e) => [e.id, e]));
+  const mins = sessionMinutes(profile);
 
   async function regenerate() {
     if (routine && !confirm('Generar una rutina nova? Substituirà l\'actual (l\'historial es manté).')) return;
@@ -56,20 +58,32 @@ export function RoutinePage() {
         </Card>
       ) : (
         <>
-          <p className="-mt-2 text-sm text-muted">3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>
-          {routine.days.map((d) => (
-            <Card key={d.key} title={`Dia ${d.key} · ${d.items.length} exercicis`}
+          <Card title="Durada habitual">
+            <Stepper value={mins} step={5} min={MIN_MINUTES} max={MAX_MINUTES} unit="min"
+              onChange={(v) => db.profile.update('me', { sessionMinutes: v })} />
+            <p className="mt-2 text-xs text-muted">
+              Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 5),
+              i s'ajusten les sèries i els descansos. En començar l'entrenament pots triar el temps que tens aquell dia.
+            </p>
+          </Card>
+          <p className="text-sm text-muted">Base: 3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>
+          {routine.days.map((d) => { const fit = fitDay(d.items, mins, byId); return (
+            <Card key={d.key} title={`Dia ${d.key} · ≈${durationLabel(fit.minutes)}`}
               right={<Button size="sm" variant="ghost" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir</Button>}>
               <ol className="divide-y divide-line">
                 {d.items.map((it, i) => {
                   const e = byId.get(it.exerciseId);
+                  const fi = fit.included.indexOf(i);
+                  const fitted = fi === -1 ? null : fit.items[fi];
                   return (
-                    <li key={`${it.exerciseId}-${i}`} className="py-2.5">
+                    <li key={`${it.exerciseId}-${i}`} className={`py-2.5 ${fitted ? '' : 'opacity-50'}`}>
                       <div className="flex items-start gap-2">
                         <span className="mt-0.5 w-5 text-sm text-muted">{i + 1}</span>
                         <div className="min-w-0 flex-1">
                           <div className="font-medium">{e?.name ?? 'Exercici esborrat'}</div>
-                          <div className="text-sm text-muted">{it.sets} × {it.repMin}–{it.repMax} · descans {it.restSec} s</div>
+                          <div className="text-sm text-muted">
+                            {fitted ? `${fitted.sets} × ${it.repMin}–${it.repMax} · descans ${fitted.restSec} s` : `Només en dies més llargs · ${it.sets} × ${it.repMin}–${it.repMax}`}
+                          </div>
                           {e && <ExerciseBadges e={e} pattern={false} />}
                           <div className="mt-1"><Badge tone="info">{PATTERN_LABEL[it.slot]}</Badge></div>
                         </div>
@@ -85,18 +99,15 @@ export function RoutinePage() {
                   );
                 })}
               </ol>
-              <Coverage items={d.items} />
+              <Coverage items={fit.items} />
             </Card>
-          ))}
-          <WeeklyBalance routine={routine} />
+          ); })}
+          <WeeklyBalance days={routine.days.map((d) => fitDay(d.items, mins, byId).items)} minutes={mins} />
         </>
       )}
 
       <Card title="Escalfament (checklist)">
         <ul className="list-disc space-y-1 pl-5 text-sm">{WARMUP.map((w) => <li key={w.id}>{w.label}</li>)}</ul>
-      </Card>
-      <Card title="Estiraments finals per a la fascitis">
-        <ul className="list-disc space-y-1 pl-5 text-sm">{COOLDOWN.map((w) => <li key={w.id}>{w.label}</li>)}</ul>
       </Card>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)}
@@ -143,12 +154,12 @@ function Coverage({ items }: { items: RoutineItem[] }) {
   );
 }
 
-function WeeklyBalance({ routine }: { routine: Routine }) {
+function WeeklyBalance({ days, minutes }: { days: RoutineItem[][]; minutes: number }) {
   const counts = new Map<string, number>();
-  routine.days.forEach((d) => d.items.forEach((i) => counts.set(i.slot, (counts.get(i.slot) ?? 0) + i.sets)));
+  days.forEach((items) => items.forEach((i) => counts.set(i.slot, (counts.get(i.slot) ?? 0) + i.sets)));
   const keys = ['push_h', 'push_v', 'pull_h', 'pull_v', 'knee', 'hip', 'isolation', 'core'] as const;
   return (
-    <Card title="Sèries setmanals per patró">
+    <Card title={`Sèries setmanals per patró (${durationLabel(minutes)}/dia)`}>
       <div className="grid grid-cols-4 gap-2 text-center">
         {keys.map((k) => (
           <div key={k} className="rounded-xl bg-surface-2 py-2">

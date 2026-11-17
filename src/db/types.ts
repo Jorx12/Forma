@@ -23,6 +23,8 @@ export interface Profile {
   goals: Goal[];
   sessionsPerWeek: number;
   adaptationWeeks: number;
+  /** durada habitual de l'entrenament en minuts (40–120) */
+  sessionMinutes?: number;
   /** null = desactivat */
   deloadEveryWeeks: number | null;
   defaultIncrementKg: { upper: number; lower: number };
@@ -125,7 +127,10 @@ export interface Session {
   flags: { adaptation: boolean; deload: boolean };
   exerciseIds: string[];
   entries: SessionEntry[];
+  /** cooldown es manté per compatibilitat amb dades antigues (ja no es fa servir) */
   checklist: { warmup: string[]; cooldown: string[] };
+  /** durada objectiu triada en començar (minuts) */
+  targetMinutes?: number;
   note?: string;
   isDemo?: boolean;
 }

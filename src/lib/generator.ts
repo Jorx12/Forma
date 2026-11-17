@@ -1,11 +1,14 @@
 import { LOWER_GROUPS } from '../data/catalog';
 import type { DayKey, Exercise, MuscleGroup, Pattern, Profile, Routine, RoutineDay, RoutineItem } from '../db/types';
 
-/** Plantilla setmanal: cada dia cobreix genoll + maluc i alterna empènyer/estirar horitzontal i vertical */
+/**
+ * Plantilla setmanal en ordre de prioritat. Cada dia cobreix genoll + maluc i alterna empènyer/estirar
+ * horitzontal i vertical. Els primers 5 sempre es fan; la resta s'hi afegeixen en dies amb més temps.
+ */
 export const TEMPLATE: Record<DayKey, Pattern[]> = {
-  A: ['push_h', 'pull_v', 'knee', 'hip', 'push_v', 'isolation', 'core'],
-  B: ['push_v', 'pull_h', 'knee', 'hip', 'pull_v', 'isolation'],
-  C: ['push_h', 'pull_h', 'knee', 'hip', 'isolation', 'core'],
+  A: ['push_h', 'pull_v', 'knee', 'hip', 'push_v', 'isolation', 'core', 'isolation', 'isolation'],
+  B: ['push_v', 'pull_h', 'knee', 'hip', 'pull_v', 'isolation', 'core', 'isolation', 'isolation'],
+  C: ['push_h', 'pull_h', 'knee', 'hip', 'isolation', 'core', 'push_v', 'isolation', 'isolation'],
 };
 
 /** Grups preferits per als aïllaments de cada dia (per repartir-los durant la setmana) */
@@ -14,6 +17,9 @@ const ISOLATION_FOCUS: Record<DayKey, MuscleGroup[]> = {
   B: ['isquios', 'triceps'],
   C: ['biceps', 'triceps', 'quadriceps', 'glutis', 'pit'],
 };
+
+/** Grups per als aïllaments extra dels dies llargs */
+const ISOLATION_EXTRA: MuscleGroup[] = ['espatlles', 'biceps', 'triceps', 'isquios', 'quadriceps', 'glutis', 'pit', 'esquena'];
 
 export const DAY_KEYS: DayKey[] = ['A', 'B', 'C'];
 
@@ -84,17 +90,23 @@ export function generateRoutine(exercises: Exercise[], profile: Profile, jitter 
   const days: RoutineDay[] = DAY_KEYS.map((key) => {
     const items: RoutineItem[] = [];
     const used = new Set<string>();
+    const isoGroups = new Set<MuscleGroup>();
     for (const slot of TEMPLATE[key]) {
       let pool = exercises.filter((e) => usable(e) && e.pattern === slot);
       if (slot === 'isolation') {
-        const focused = pool.filter((e) => ISOLATION_FOCUS[key].includes(e.muscleGroup) && e.muscleGroup !== 'bessons');
-        if (focused.some((e) => !used.has(e.id))) pool = focused;
+        // Primer els grups d'aquest dia, després altres grups encara no treballats amb aïllament
+        const fresh = (groups: MuscleGroup[]) => pool.filter((e) => groups.includes(e.muscleGroup) && !isoGroups.has(e.muscleGroup) && !used.has(e.id));
+        const focused = fresh(ISOLATION_FOCUS[key]);
+        const extra = fresh(ISOLATION_EXTRA);
+        if (focused.length) pool = focused;
+        else if (extra.length) pool = extra;
       }
       const e = pick(pool, used);
       if (!e) {
-        warnings.push(`Dia ${key}: no hi ha cap màquina disponible per a «${slot}».`);
+        if (items.length < 5) warnings.push(`Dia ${key}: no hi ha cap màquina disponible per a «${slot}».`);
         continue;
       }
+      if (slot === 'isolation') isoGroups.add(e.muscleGroup);
       if (fasciitis && e.footImpact === 'alt') warnings.push(`Dia ${key}: «${e.name}» té impacte alt al peu (no hi havia alternativa).`);
       used.add(e.id);
       useCount.set(e.id, (useCount.get(e.id) ?? 0) + 1);
