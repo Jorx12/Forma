@@ -3,7 +3,8 @@ import { buildCatalog } from '../../data/catalog';
 import { DEFAULT_PROFILE } from '../../data/defaults';
 import type { Exercise, RoutineItem, Session, SessionEntry } from '../../db/types';
 import { dayNum } from '../dates';
-import { fitDay } from '../duration';
+import { planSession } from '../duration';
+import { cardioTotalSec, hiitPhases, HIIT_PROTOCOLS, planCardio } from '../../data/cardio';
 import { generateRoutine } from '../generator';
 import { nutritionRef } from '../nutrition';
 import { deloadDue, nextDayKey, planFor } from '../progression';
@@ -113,20 +114,42 @@ describe('durada', () => {
   const cat = buildCatalog();
   const byId = new Map(cat.map((e) => [e.id, e]));
   const { days } = generateRoutine(cat, P);
-  it('40 min: 5 exercicis i dins del temps', () => {
+  it('40 min: 5 escalfament + força + 10 HIIT, dins del temps', () => {
     for (const d of days) {
-      const f = fitDay(d.items, 40, byId);
-      expect(f.items.length).toBe(5);
-      expect(f.minutes).toBeLessThanOrEqual(41);
-      for (const it of f.items) expect(it.sets).toBeGreaterThanOrEqual(2);
+      const p = planSession(d.items, 40, byId, P, true);
+      expect(p.warmupMin).toBe(5);
+      expect(p.cardio?.plannedMin).toBe(10);
+      expect(p.strength.items.length).toBeGreaterThanOrEqual(4);
+      expect(p.totalMin).toBeLessThanOrEqual(41);
+      for (const it of p.strength.items) expect(it.sets).toBeGreaterThanOrEqual(2);
     }
   });
-  it('més temps → més exercicis o més sèries', () => {
+  it('2 h: 8 escalfament i 20 HIIT', () => {
+    const p = planSession(days[0].items, 120, byId, P, true);
+    expect(p.warmupMin).toBe(8);
+    expect(p.cardio?.plannedMin).toBe(20);
+    expect(p.totalMin).toBeLessThanOrEqual(121);
+  });
+  it('sense HIIT hi cap més força', () => {
+    const a = planSession(days[0].items, 60, byId, P, true).strength.items.reduce((t, i) => t + i.sets, 0);
+    const b = planSession(days[0].items, 60, byId, P, false).strength.items.reduce((t, i) => t + i.sets, 0);
+    expect(b).toBeGreaterThan(a);
+  });
+  it('més temps → més volum de força', () => {
     for (const d of days) {
-      const vol = (m: number) => fitDay(d.items, m, byId).items.reduce((t, i) => t + i.sets, 0);
+      const vol = (m: number) => planSession(d.items, m, byId, P).strength.items.reduce((t, i) => t + i.sets, 0);
       expect(vol(60)).toBeGreaterThan(vol(40));
       expect(vol(120)).toBeGreaterThan(vol(60));
-      expect(fitDay(d.items, 120, byId).minutes).toBeLessThanOrEqual(121);
+    }
+  });
+});
+
+describe('HIIT', () => {
+  it('el pla cap dins els minuts', () => {
+    for (const m of [10, 13, 20]) for (const p of HIIT_PROTOCOLS) {
+      const c = planCardio(m, 'bici', p.id);
+      expect(cardioTotalSec(c)).toBeLessThanOrEqual(m * 60);
+      expect(hiitPhases(c).at(-1)!.end).toBe(cardioTotalSec(c));
     }
   });
 });

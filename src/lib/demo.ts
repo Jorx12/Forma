@@ -1,5 +1,6 @@
 import { db, deleteMeta, getMeta, setMeta, uid } from '../db/db';
-import type { DayKey, Session, SessionEntry, WeighIn } from '../db/types';
+import { planCardio } from '../data/cardio';
+import type { DayKey, Session, SessionEntry, Swim, WeighIn } from '../db/types';
 import { addDaysISO, toISODate, weekStartISO } from './dates';
 import { generateRoutine, incrementFor, newRoutine } from './generator';
 
@@ -74,18 +75,30 @@ export async function loadDemo() {
         status: 'feta', flags: { adaptation: w < profile.adaptationWeeks, deload },
         exerciseIds: entries.map((e) => e.exerciseId), entries,
         checklist: { warmup: ['bici', 'mobilitat'], cooldown: [] }, isDemo: true,
+        warmupMin: 6, targetMinutes: 60,
+        cardio: (() => { const c = planCardio(12, k % 2 ? 'eliptica' : 'bici', w < 3 ? '30-60' : '30-30'); return { ...c, done: true, roundsDone: c.rounds, durationSec: c.easyStartSec + c.easyEndSec + c.rounds * (c.workSec + c.restSec), effort: 'dur' as const }; })(),
       });
     }
   }
-  await db.transaction('rw', db.weighIns, db.sessions, async () => {
+  // Natació: dissabtes alterns
+  const swims: Swim[] = [];
+  for (let w = 0; w < WEEKS; w += 2) {
+    const date = addDaysISO(start, w * 7 + 5);
+    if (date >= today) continue;
+    const dist = 1000 + w * 100;
+    swims.push({ id: uid(), date, distanceM: dist, durationMin: Math.round((dist / 100) * (2.9 - w * 0.04)), poolM: 25, style: w % 4 ? 'mixt' : 'crol', effort: 'correcte', isDemo: true });
+  }
+  await db.transaction('rw', db.weighIns, db.sessions, db.swims, async () => {
     await db.weighIns.bulkPut(weighIns);
     await db.sessions.bulkPut(sessions);
+    await db.swims.bulkPut(swims);
   });
 }
 
 export async function clearDemo() {
   const backup = await getMeta<{ startDate: string }>('demoBackup');
-  await db.transaction('rw', db.weighIns, db.sessions, db.bodyMeasurements, db.profile, db.meta, async () => {
+  await db.transaction('rw', [db.weighIns, db.sessions, db.swims, db.bodyMeasurements, db.profile, db.meta], async () => {
+    await db.swims.filter((s) => !!s.isDemo).delete();
     await db.weighIns.filter((w) => !!w.isDemo).delete();
     await db.sessions.filter((s) => !!s.isDemo).delete();
     await db.bodyMeasurements.filter((m) => !!m.isDemo).delete();

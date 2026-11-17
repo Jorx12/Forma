@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router';
 import { useActiveRoutine, useExercises, useMeta, useProfile, useSessions } from '../db/hooks';
 import type { DayKey } from '../db/types';
 import { Badge, Button, Card, Notice, Page, Segmented, Stepper } from '../components/ui';
-import { durationLabel, fitDay, MAX_MINUTES, MIN_MINUTES, sessionMinutes } from '../lib/duration';
+import { durationLabel, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
+import { machineLabel, protocolById } from '../data/cardio';
 import { fmtDate } from '../lib/dates';
 import { DAY_KEYS } from '../lib/generator';
 import { deloadDue, isAdaptation, nextDayKey } from '../lib/progression';
@@ -22,6 +23,7 @@ export function TrainPage() {
   const [day, setDay] = useState<DayKey | null>(null);
   const [deload, setDeload] = useState<boolean | null>(null);
   const [minutes, setMinutes] = useState<number | null>(null);
+  const [cardioOn, setCardioOn] = useState<boolean | null>(null);
   if (!profile || routine === undefined || !exercises || !sessions || activeId === undefined) return null;
 
   const active = activeId ? sessions.find((s) => s.id === activeId && s.status === 'en_curs') : undefined;
@@ -60,7 +62,9 @@ export function TrainPage() {
 
   const all = routine.days.find((d) => d.key === chosen)?.items ?? [];
   const mins = minutes ?? sessionMinutes(profile);
-  const fit = fitDay(all, mins, byId);
+  const withCardio = cardioOn ?? (profile.cardio?.enabled ?? true);
+  const plan = planSession(all, mins, byId, profile, withCardio);
+  const fit = plan.strength;
   const skipped = all.length - fit.items.length;
 
   return (
@@ -83,9 +87,18 @@ export function TrainPage() {
               className={`h-9 flex-1 rounded-lg text-sm font-medium ${mins === m ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted'}`}>{m < 60 ? `${m}'` : `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}`}</button>
           ))}
         </div>
-        <p className="mt-3 flex items-center gap-1.5 text-sm"><Clock size={16} className="text-muted" />
-          Estimat: <strong>≈{durationLabel(fit.minutes)}</strong> · {fit.items.length} exercicis{skipped > 0 && <span className="text-muted"> ({skipped} es queden fora)</span>}
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{plan.warmupMin}'</div><div className="text-[11px] text-muted">Escalfament</div></div>
+          <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{fit.minutes}'</div><div className="text-[11px] text-muted">Força · {fit.items.length} ex.</div></div>
+          <button onClick={() => setCardioOn(!withCardio)} className={`rounded-xl py-2 ${withCardio ? 'bg-surface-2' : 'border border-dashed border-line'}`}>
+            <div className="tabular text-lg font-bold">{plan.cardio ? `${plan.cardio.plannedMin}'` : '—'}</div>
+            <div className="text-[11px] text-muted">{withCardio ? 'HIIT' : 'Sense HIIT'}</div>
+          </button>
+        </div>
+        <p className="mt-2 flex items-center gap-1.5 text-sm"><Clock size={16} className="text-muted" />
+          <span>Total <strong>≈{durationLabel(plan.totalMin)}</strong>{skipped > 0 && <span className="text-muted"> · {skipped} ex. es queden fora</span>}</span>
         </p>
+        {plan.cardio && <p className="mt-1 text-xs text-muted">HIIT: {machineLabel(plan.cardio.machine)} · {protocolById(plan.cardio.protocolId).label} × {plan.cardio.rounds} (es pot canviar al moment). Toca el requadre per treure'l avui.</p>}
         <ol className="mt-3 space-y-1.5">
           {fit.items.map((it, i) => (
             <li key={i} className="flex justify-between gap-2 text-sm">
@@ -103,7 +116,7 @@ export function TrainPage() {
       </Card>
       <Button variant="primary" size="lg" className="h-20 w-full text-xl" onClick={async () => {
         unlockAudio();
-        await startSession(chosen, deloadOn, mins);
+        await startSession(chosen, deloadOn, mins, withCardio);
         nav('/entrenar/sessio');
       }}><Play /> Començar entrenament</Button>
     </Page>

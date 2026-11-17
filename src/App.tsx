@@ -13,6 +13,7 @@ import { ProgressPage } from './pages/ProgressPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RoutinePage } from './pages/RoutinePage';
 import { SessionPage } from './pages/SessionPage';
+import { SwimPage } from './pages/SwimPage';
 import { SummaryPage } from './pages/SummaryPage';
 import { TrainPage } from './pages/TrainPage';
 import { WeightPage } from './pages/WeightPage';
@@ -26,6 +27,7 @@ const router = createHashRouter([
       { path: '/entrenar', element: <TrainPage /> },
       { path: '/entrenar/sessio', element: <SessionPage /> },
       { path: '/entrenar/resum/:id', element: <SummaryPage /> },
+      { path: '/natacio', element: <SwimPage /> },
       { path: '/progres', element: <ProgressPage /> },
       { path: '/progres/sessio/:id', element: <SummaryPage fromHistory /> },
       { path: '/progres/exercici/:id', element: <ExerciseProgressPage /> },

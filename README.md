@@ -10,7 +10,8 @@ Quadern personal de pes i gimnàs. És una PWA en català, pensada per al mòbil
 |---|---|
 | **Inici** | Proper entrenament, entrenaments de la setmana (x/3) i ratxa, pes i progrés cap a 75 i 70 kg, calories i proteïna, avís de pesar-te (més de 7 dies) i de fer còpia (més de 14 dies) |
 | **Pes** | Registre ràpid (pes, % de greix, nota), gràfic amb la línia objectiu i les finestres de les fites, IMC, ritme real (regressió de 6 setmanes) comparat amb el necessari, previsió de dates, estat i avís si perds més de l'1 % per setmana durant 3 setmanes |
-| **Entrenar** | Dia proposat (A→B→C), sèries amb botons +/− preomplertes amb l'última vegada, temporitzador de descans amb so i vibració, esforç per sèrie, checklist d'escalfament, durada triable de 40 min a 2 h, resum amb volum i rècords. Si tanques l'app, pots continuar l'entrenament |
+| **Entrenar** | Dia proposat (A→B→C), sèries amb botons +/− preomplertes amb l'última vegada, temporitzador de descans amb so i vibració, esforç per sèrie, durada triable de 40 min a 2 h repartida en escalfament (5–8'), força i cardio HIIT (10–20') amb temporitzador d'intervals, resum amb volum i rècords. Si tanques l'app, pots continuar l'entrenament |
+| **Natació** | Registre de sessions (distància, durada, piscina, estil, esforç), ritme /100 m, metres per setmana i historial |
 | **Progrés** | Historial, evolució per exercici (pes màxim, 1RM d'Epley i volum) i constància setmanal |
 | **Més** | Perfil, referència calòrica (Mifflin-St Jeor), rutina (generar, substituir, editar), catàleg de màquines, còpia de seguretat, dades de prova i instal·lació |
 
@@ -59,7 +60,7 @@ Si fa més de 14 dies que no exportes, la pantalla d'inici mostra un avís discr
 
 ## Model de dades
 
-Base de dades IndexedDB `forma` (Dexie, esquema v1). Els tipus són a `src/db/types.ts`.
+Base de dades IndexedDB `forma` (Dexie, esquema v2). Els tipus són a `src/db/types.ts`.
 
 | Taula | Contingut |
 |---|---|
@@ -68,6 +69,7 @@ Base de dades IndexedDB `forma` (Dexie, esquema v1). Els tipus són a `src/db/ty
 | `exercises` | Catàleg: grup muscular, patró, posició, impacte al peu, compost, disponible, preferència, increment, nota, personalitzada |
 | `routines` | Rutina activa amb els dies A/B/C i els exercicis (patró, sèries, rang de repeticions, descans) |
 | `sessions` | Entrenaments amb les sèries a dins (pes, reps, feta, esforç), suggeriment de progressió, marques d'adaptació i de descàrrega, checklist |
+| `swims` | Sessions de natació (des de l'esquema v2) |
 | `meta` | Clau/valor: sessió activa, temporitzador, última exportació, tema, còpia de la data d'inici mentre hi ha dades de prova |
 | `bodyMeasurements`, `progressPhotos` | **Preparades per al futur** (mesures corporals i fotos). Encara no tenen pantalla |
 

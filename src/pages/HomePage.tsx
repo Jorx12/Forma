@@ -1,12 +1,13 @@
-import { ChevronRight, Dumbbell, Flame, Play, Scale } from 'lucide-react';
+import { ChevronRight, Dumbbell, Flame, Play, Scale, Waves } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router';
 import { daysSinceExport } from '../lib/backup';
-import { useActiveRoutine, useMeta, useProfile, useSessions, useWeighIns } from '../db/hooks';
+import { useActiveRoutine, useMeta, useProfile, useSessions, useSwims, useWeighIns } from '../db/hooks';
+import { fmtMeters } from '../lib/swim';
 import { Badge, Button, Card, Notice, Page, ProgressBar } from '../components/ui';
 import { nextDayKey } from '../lib/progression';
 import { weeklyCounts, streak } from '../lib/stats';
-import { daysAgo, fmtDate, fmtLong, fmtNum, todayISO } from '../lib/dates';
+import { daysAgo, fmtDate, fmtLong, fmtNum, todayISO, weekStartISO } from '../lib/dates';
 import { nutritionRef } from '../lib/nutrition';
 import { analyzeWeight, STATUS_LABEL } from '../lib/weight';
 import { statusTone, TooFastNotice } from './WeightPage';
@@ -15,11 +16,13 @@ export function HomePage() {
   const profile = useProfile();
   const weighIns = useWeighIns();
   const sessions = useSessions();
+  const swims = useSwims();
   const routine = useActiveRoutine();
   const activeId = useMeta<string>('activeSessionId');
   const lastExport = useMeta<string>('lastExportAt');
   const sinceExport = useLiveQuery(daysSinceExport, [lastExport]);
-  if (!profile || !weighIns || !sessions || routine === undefined) return null;
+  if (!profile || !weighIns || !sessions || !swims || routine === undefined) return null;
+  const swimsWeek = swims.filter((s) => weekStartISO(s.date) === weekStartISO(todayISO()));
   const active = activeId ? sessions.find((s) => s.id === activeId && s.status === 'en_curs') : undefined;
   const weeks = weeklyCounts(sessions);
   const thisWeek = weeks[weeks.length - 1]?.count ?? 0;
@@ -66,6 +69,19 @@ export function HomePage() {
           <Button variant="primary" size="lg" className="w-full"><Play size={20} /> {active ? 'Continuar entrenament' : routine ? 'Començar entrenament' : 'Crear la rutina'}</Button>
         </Link>
       </Card>
+
+      <Link to="/natacio" className="block">
+        <Card>
+          <div className="flex items-center gap-3">
+            <Waves className="text-info" />
+            <div className="flex-1 text-sm">
+              <div className="font-semibold">Natació</div>
+              <div className="text-xs text-muted">{swimsWeek.length ? `Aquesta setmana: ${swimsWeek.length} ${swimsWeek.length === 1 ? 'sessió' : 'sessions'} · ${fmtMeters(swimsWeek.reduce((t, s) => t + s.distanceM, 0))}` : 'Aquesta setmana encara no has nedat'}</div>
+            </div>
+            <ChevronRight size={18} className="text-muted" />
+          </div>
+        </Card>
+      </Link>
 
       <Link to="/pes" className="block">
         <Card title="Pes" right={<Badge tone={statusTone(a.status)}>{STATUS_LABEL[a.status]}</Badge>}>

@@ -1,9 +1,10 @@
-import { Trophy } from 'lucide-react';
+import { Flame, Trophy } from 'lucide-react';
+import { machineLabel, protocolById } from '../data/cardio';
 import { Link, useNavigate, useParams } from 'react-router';
 import { db } from '../db/db';
 import { useExercises, useSessions } from '../db/hooks';
 import { Badge, Button, Card, Empty, Page, Stat } from '../components/ui';
-import { fmtDuration, fmtLong } from '../lib/dates';
+import { fmtClock, fmtDuration, fmtLong } from '../lib/dates';
 import { completed, sessionPRs, sessionSetsDone, sessionVolume, summarizeEntry } from '../lib/stats';
 
 export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) {
@@ -44,6 +45,21 @@ export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) 
           </ul>
         )}
       </Card>
+      {s.cardio && (
+        <Card title="Cardio HIIT">
+          {s.cardio.skipped ? <p className="text-sm text-muted">Planificat però no fet.</p> : (
+            <div className="flex items-center gap-3">
+              <Flame className="shrink-0 text-warn" />
+              <div className="text-sm">
+                <div className="font-medium">{machineLabel(s.cardio.machine)} · {protocolById(s.cardio.protocolId).label}</div>
+                <div className="text-muted">{s.cardio.roundsDone}/{s.cardio.rounds} rondes · {fmtClock(s.cardio.durationSec)}
+                  {s.cardio.kcal ? ` · ${s.cardio.kcal} kcal` : ''}{s.cardio.distanceKm ? ` · ${s.cardio.distanceKm.toLocaleString('ca-ES')} km` : ''}
+                  {s.cardio.effort ? ` · ${{ facil: 'fàcil', correcte: 'correcte', dur: 'dur' }[s.cardio.effort]}` : ''}</div>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
       <Card title="Exercicis">
         <ul className="divide-y divide-line">
           {s.entries.map((e, i) => (

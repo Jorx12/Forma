@@ -1,9 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type {
-  BodyMeasurement, Exercise, MetaRow, Profile, ProgressPhoto, Routine, Session, WeighIn,
+  BodyMeasurement, Exercise, MetaRow, Profile, ProgressPhoto, Routine, Session, Swim, WeighIn,
 } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export class FormaDB extends Dexie {
   profile!: EntityTable<Profile, 'id'>;
@@ -14,6 +14,7 @@ export class FormaDB extends Dexie {
   meta!: EntityTable<MetaRow, 'key'>;
   bodyMeasurements!: EntityTable<BodyMeasurement, 'id'>;
   progressPhotos!: EntityTable<ProgressPhoto, 'id'>;
+  swims!: EntityTable<Swim, 'id'>;
 
   constructor() {
     super('forma');
@@ -27,6 +28,8 @@ export class FormaDB extends Dexie {
       bodyMeasurements: 'id, date',
       progressPhotos: 'id, date',
     });
+    // v2: natació
+    this.version(2).stores({ swims: 'id, date' });
   }
 }
 

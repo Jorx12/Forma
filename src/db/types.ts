@@ -25,6 +25,8 @@ export interface Profile {
   adaptationWeeks: number;
   /** durada habitual de l'entrenament en minuts (40–120) */
   sessionMinutes?: number;
+  /** bloc de cardio HIIT al final de l'entrenament */
+  cardio?: CardioPrefs;
   /** null = desactivat */
   deloadEveryWeeks: number | null;
   defaultIncrementKg: { upper: number; lower: number };
@@ -131,6 +133,54 @@ export interface Session {
   checklist: { warmup: string[]; cooldown: string[] };
   /** durada objectiu triada en començar (minuts) */
   targetMinutes?: number;
+  /** minuts d'escalfament planificats */
+  warmupMin?: number;
+  /** bloc de cardio HIIT (si n'hi ha) */
+  cardio?: CardioLog;
+  note?: string;
+  isDemo?: boolean;
+}
+
+// ── Cardio HIIT ──
+export type CardioMachine = 'bici' | 'eliptica' | 'rem' | 'assault' | 'skierg' | 'cinta_caminar';
+
+export interface CardioPrefs {
+  enabled: boolean;
+  machine: CardioMachine;
+  /** id del protocol d'intervals (p. ex. '30-60') */
+  protocolId: string;
+}
+
+export interface CardioLog {
+  machine: CardioMachine;
+  protocolId: string;
+  workSec: number;
+  restSec: number;
+  /** minuts suaus al principi i al final del bloc */
+  easyStartSec: number;
+  easyEndSec: number;
+  rounds: number;
+  plannedMin: number;
+  roundsDone: number;
+  durationSec: number;
+  done: boolean;
+  skipped?: boolean;
+  effort?: Effort;
+  kcal?: number;
+  distanceKm?: number;
+}
+
+// ── Natació ──
+export type SwimStyle = 'crol' | 'braca' | 'esquena' | 'papallona' | 'mixt';
+
+export interface Swim {
+  id: string;
+  date: string;
+  durationMin: number;
+  distanceM: number;
+  poolM: 25 | 50;
+  style: SwimStyle;
+  effort?: Effort;
   note?: string;
   isDemo?: boolean;
 }

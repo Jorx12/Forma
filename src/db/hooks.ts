@@ -8,5 +8,6 @@ export const useActiveRoutine = () =>
   useLiveQuery(async () => (await db.routines.toArray()).find((r) => r.active) ?? null, []);
 export const useSessions = () =>
   useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().toArray(), []);
+export const useSwims = () => useLiveQuery(() => db.swims.orderBy('date').reverse().toArray(), []);
 export const useMeta = <T,>(key: string) =>
   useLiveQuery(async () => ((await db.meta.get(key))?.value as T | undefined) ?? null, [key]);

@@ -49,7 +49,7 @@ function History() {
                     {s.isDemo && <span className="ml-2"><Badge>prova</Badge></span>}
                   </div>
                   <div className="truncate text-xs text-muted">
-                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {sessionSetsDone(s)} sèries · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg
+                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {sessionSetsDone(s)} sèries · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg{s.cardio?.done ? ` · HIIT ${Math.round(s.cardio.durationSec / 60)}'` : ''}
                   </div>
                   <div className="truncate text-xs text-muted">{s.entries.map((e) => byId.get(e.exerciseId)?.name).filter(Boolean).join(', ')}</div>
                 </div>

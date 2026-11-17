@@ -5,7 +5,9 @@ import { Navigate, useNavigate } from 'react-router';
 import { WARMUP } from '../data/catalog';
 import { useExercises, useMeta, useProfile, useSessions } from '../db/hooks';
 import type { Effort, Exercise, Profile, Session, SessionEntry } from '../db/types';
+import { HiitBlock } from '../components/Hiit';
 import { RestTimer, startRest } from '../components/RestTimer';
+import { planCardio } from '../data/cardio';
 import { Badge, Button, Card, Notice, Sheet, Stepper } from '../components/ui';
 import { keepAwake, unlockAudio } from '../lib/alerts';
 import { fmtClock } from '../lib/dates';
@@ -85,7 +87,8 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
       if (confirm('No has fet cap sèrie. Vols descartar l\'entrenament?')) { await discardSession(session); onExit(); }
       return;
     }
-    if (doneCount < totalSets && !confirm(`Queden ${totalSets - doneCount} sèries per fer. Acabar igualment?`)) return;
+    const pending = [doneCount < totalSets && `${totalSets - doneCount} sèries`, session.cardio && !session.cardio.done && 'el HIIT'].filter(Boolean);
+    if (pending.length && !confirm(`Et queda per fer: ${pending.join(' i ')}. Acabar igualment?`)) return;
     await finishSession(session);
     onExit(session.id);
   }
@@ -105,7 +108,7 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
         {session.flags.adaptation && <Notice tone="info">Adaptació: deixa ~3 repeticions de marge (RIR 3) a cada sèrie.</Notice>}
         {session.flags.deload && <Notice tone="warn">Sessió de descàrrega: menys sèries i pes més baix. Sense apurar.</Notice>}
 
-        <Checklist title="Escalfament" items={WARMUP} checked={session.checklist.warmup} defaultOpen={!anyDone}
+        <Checklist title={`Escalfament${session.warmupMin ? ` · ${session.warmupMin} min` : ''}`} items={WARMUP} checked={session.checklist.warmup} defaultOpen={!anyDone}
           onToggle={(id) => save((s) => { s.checklist.warmup = toggle(s.checklist.warmup, id); })} />
 
         {session.entries.map((entry, ei) => (
@@ -125,6 +128,10 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
         ))}
 
         <Button className="w-full" onClick={() => setPicker({ idx: null })}><Plus size={18} /> Afegir exercici</Button>
+
+        <HiitBlock sessionId={session.id} cardio={session.cardio}
+          onChange={(c) => save((s) => { s.cardio = c; })}
+          onAdd={() => save((s) => { s.cardio = planCardio(12, profile.cardio?.machine ?? 'bici', profile.cardio?.protocolId ?? '30-60'); })} />
 
         <Button variant="primary" size="lg" className="w-full" onClick={finish}>Acabar entrenament</Button>
       </div>

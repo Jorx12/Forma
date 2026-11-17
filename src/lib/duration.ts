@@ -1,11 +1,13 @@
-import type { Exercise, Profile, RoutineItem } from '../db/types';
+import { planCardio } from '../data/cardio';
+import type { CardioLog, Exercise, Profile, RoutineItem } from '../db/types';
 import { isIsolationLike } from './generator';
 
 /** Supòsits per estimar la durada */
-export const WARMUP_MIN = 8;
 const WORK_SEC = 40; // durada d'una sèrie
 const TRANSITION_SEC = 90; // canviar de màquina i ajustar-la
 export const MIN_EXERCISES = 5;
+/** en dies molt curts es pot baixar a 4 (genoll, maluc, empènyer, estirar) */
+export const HARD_MIN_EXERCISES = 4;
 export const MAX_EXERCISES = 9;
 export const MIN_MINUTES = 40;
 export const MAX_MINUTES = 120;
@@ -16,8 +18,9 @@ export const sessionMinutes = (p: Profile) => p.sessionMinutes ?? 60;
 
 const itemSec = (it: Pick<RoutineItem, 'sets' | 'restSec'>) => it.sets * (WORK_SEC + it.restSec) + TRANSITION_SEC;
 
+/** Minuts estimats del bloc de força */
 export function estimateMinutes(items: Pick<RoutineItem, 'sets' | 'restSec'>[]) {
-  return Math.round(WARMUP_MIN + items.reduce((t, it) => t + itemSec(it), 0) / 60);
+  return Math.round(items.reduce((t, it) => t + itemSec(it), 0) / 60);
 }
 
 export interface FitResult {
@@ -34,7 +37,7 @@ export interface FitResult {
  * Si sobra temps: s'afegeix una 4a sèrie als compostos principals.
  */
 export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>): FitResult {
-  const budget = (minutes - WARMUP_MIN) * 60;
+  const budget = minutes * 60;
   const iso = (it: RoutineItem) => {
     const e = byId.get(it.exerciseId);
     return e ? isIsolationLike(e) : it.slot === 'isolation' || it.slot === 'core';
@@ -63,6 +66,8 @@ export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Ex
         if (it.sets > 2) { it.sets--; changed = true; }
       }
     }
+    // 3) dies molt curts: treu el darrer exercici (mai per sota de 4)
+    while (total(sel) > budget && sel.length > HARD_MIN_EXERCISES) { sel.pop(); included.pop(); }
   } else {
     // Temps de sobres, per ordre: 4a sèrie als compostos, descansos més llargs, 4a sèrie als aïllaments
     const grow = (pred: (it: RoutineItem) => boolean, change: (it: RoutineItem) => RoutineItem) => {
@@ -84,3 +89,25 @@ export function durationLabel(min: number) {
   return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
 }
 
+
+export interface SessionPlan {
+  minutes: number;
+  warmupMin: number;
+  strength: FitResult;
+  cardio: CardioLog | null;
+  totalMin: number;
+}
+
+/**
+ * Reparteix el temps: escalfament 5–8 min, força i cardio HIIT 10–20 min (proporcionals a la durada).
+ */
+export function planSession(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>, profile: Profile, cardioOn = profile.cardio?.enabled ?? true): SessionPlan {
+  const m = Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, minutes));
+  const t = (m - MIN_MINUTES) / (MAX_MINUTES - MIN_MINUTES);
+  const warmupMin = Math.round(5 + 3 * t);
+  const cardioMin = cardioOn ? Math.round(10 + 10 * t) : 0;
+  const cardio = cardioOn ? planCardio(cardioMin, profile.cardio?.machine ?? 'bici', profile.cardio?.protocolId ?? '30-60') : null;
+  const strength = fitDay(all, m - warmupMin - cardioMin, byId);
+  const cardioReal = cardio ? Math.round((cardio.easyStartSec + cardio.rounds * (cardio.workSec + cardio.restSec) + cardio.easyEndSec) / 60) : 0;
+  return { minutes: m, warmupMin, strength, cardio, totalMin: warmupMin + strength.minutes + cardioReal };
+}

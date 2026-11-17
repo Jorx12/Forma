@@ -6,7 +6,8 @@ import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
 import { Badge, Button, Card, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
-import { durationLabel, fitDay, MAX_MINUTES, MIN_MINUTES, sessionMinutes } from '../lib/duration';
+import { CARDIO_MACHINES, HIIT_PROTOCOLS } from '../data/cardio';
+import { durationLabel, type SessionPlan, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
 import { defaultItem, generateRoutine, newRoutine, scoreExercise, usable } from '../lib/generator';
 
 export async function createRoutine(exercises: Exercise[], profile: Profile, jitter = 0) {
@@ -61,14 +62,16 @@ export function RoutinePage() {
           <Card title="Durada habitual">
             <Stepper value={mins} step={5} min={MIN_MINUTES} max={MAX_MINUTES} unit="min"
               onChange={(v) => db.profile.update('me', { sessionMinutes: v })} />
+            <StructureSummary profile={profile} plan={planSession(routine.days[0]?.items ?? [], mins, byId, profile)} />
             <p className="mt-2 text-xs text-muted">
-              Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 5),
+              Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 4–5),
               i s'ajusten les sèries i els descansos. En començar l'entrenament pots triar el temps que tens aquell dia.
             </p>
           </Card>
+          <CardioSettings profile={profile} />
           <p className="text-sm text-muted">Base: 3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>
-          {routine.days.map((d) => { const fit = fitDay(d.items, mins, byId); return (
-            <Card key={d.key} title={`Dia ${d.key} · ≈${durationLabel(fit.minutes)}`}
+          {routine.days.map((d) => { const plan = planSession(d.items, mins, byId, profile); const fit = plan.strength; return (
+            <Card key={d.key} title={`Dia ${d.key} · força ≈${durationLabel(fit.minutes)}`}
               right={<Button size="sm" variant="ghost" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir</Button>}>
               <ol className="divide-y divide-line">
                 {d.items.map((it, i) => {
@@ -102,7 +105,7 @@ export function RoutinePage() {
               <Coverage items={fit.items} />
             </Card>
           ); })}
-          <WeeklyBalance days={routine.days.map((d) => fitDay(d.items, mins, byId).items)} minutes={mins} />
+          <WeeklyBalance days={routine.days.map((d) => planSession(d.items, mins, byId, profile).strength.items)} minutes={mins} />
         </>
       )}
 
@@ -220,3 +223,49 @@ export function ExercisePicker({ exercises, profile, slot, currentId, onPick }: 
   );
 }
 
+
+function StructureSummary({ plan, profile }: { plan: SessionPlan; profile: Profile }) {
+  const on = profile.cardio?.enabled ?? true;
+  return (
+    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+      <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{plan.warmupMin}'</div><div className="text-[11px] text-muted">Escalfament</div></div>
+      <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{plan.strength.minutes}'</div><div className="text-[11px] text-muted">Força</div></div>
+      <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{on && plan.cardio ? `${plan.cardio.plannedMin}'` : '—'}</div><div className="text-[11px] text-muted">HIIT</div></div>
+    </div>
+  );
+}
+
+function CardioSettings({ profile }: { profile: Profile }) {
+  const c = profile.cardio ?? { enabled: true, machine: 'bici' as const, protocolId: '30-60' };
+  const set = (patch: Partial<typeof c>) => db.profile.update('me', { cardio: { ...c, ...patch } });
+  return (
+    <Card title="Cardio HIIT al final">
+      <Segmented value={c.enabled ? 'si' : 'no'} onChange={(v) => set({ enabled: v === 'si' })} options={[{ value: 'si', label: 'Sí, per defecte' }, { value: 'no', label: 'No' }]} />
+      {c.enabled && (
+        <div className="mt-3 space-y-3">
+          <Field label="Màquina preferida">
+            <div className="grid grid-cols-2 gap-1.5">
+              {CARDIO_MACHINES.map((m) => (
+                <button key={m.id} onClick={() => set({ machine: m.id })}
+                  className={`min-h-11 rounded-xl px-2 text-sm font-medium ${c.machine === m.id ? 'bg-accent text-accent-ink' : 'bg-surface-2'}`}>
+                  {m.label}{m.foot !== 'baix' && ' ⚠️'}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Intervals">
+            <div className="space-y-1.5">
+              {HIIT_PROTOCOLS.map((p) => (
+                <button key={p.id} onClick={() => set({ protocolId: p.id })}
+                  className={`flex h-11 w-full items-center justify-between rounded-xl px-3 text-sm ${c.protocolId === p.id ? 'bg-accent text-accent-ink' : 'bg-surface-2'}`}>
+                  <span className="font-medium">{p.label}</span><span className="text-xs opacity-80">{p.level}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
+          <p className="text-xs text-muted">Només màquines sense impacte (res de córrer ni salts) per la fascitis. ⚠️ = dempeus, vigila la planta del peu. El bloc dura 10–20 min segons la durada del dia: 2' suaus, intervals i 1' de tornada a la calma.</p>
+        </div>
+      )}
+    </Card>
+  );
+}
