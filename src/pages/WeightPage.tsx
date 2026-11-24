@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2, TreePine } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { db, uid } from '../db/db';
@@ -79,7 +79,7 @@ function WeighInForm({ initialKg }: { initialKg: number }) {
         <Stepper value={kg} onChange={setKg} step={0.1} digits={1} min={30} max={250} unit="kg" />
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <input type="date" aria-label="Data" className={inputCls} value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
-          <Button variant="primary" className="px-6" onClick={save}>{saved ? 'Desat ✓' : 'Desar'}</Button>
+          <Button variant="primary" className="px-6" onClick={save}>{saved ? 'Desat' : 'Desar'}</Button>
         </div>
         <Disclosure label="Greix i nota">
           <div className="grid grid-cols-2 gap-2">
@@ -142,13 +142,13 @@ export function WeightIndicators({ profile, a, children }: { profile: Profile; a
           <span className={`tabular ml-auto text-sm ${a.weeklyChange <= 0 ? 'text-accent' : 'text-warn'}`}>{a.weeklyChange > 0 ? '+' : '−'}{fmtNum(Math.abs(a.weeklyChange), 2)}</span>
         )}
       </div>
-      {a.maintain && <p className="mt-2 text-sm text-muted">🎄 Mantenir {fmtNum(profile.modes?.christmas.refKg ?? a.current)} kg (±0,5)</p>}
+      {a.maintain && <p className="mt-2 flex items-center gap-1.5 text-sm text-muted"><TreePine size={14} /> Mantenir {fmtNum(profile.modes?.christmas.refKg ?? a.current)} kg (±0,5)</p>}
       {children}
       <div className="mt-5 space-y-3">
         {a.goals.map((g) => (
           <div key={g.id}>
             <div className="mb-1.5 flex justify-between text-xs"><span>{g.targetKg} kg</span>
-              <span className="tabular text-muted">{g.reached ? '✓' : `−${fmtNum(g.remainingKg)}${g.forecast ? ` · ${fmtDate(g.forecast, 'MMM yy')}` : ''}`}</span></div>
+              <span className="tabular text-muted">{g.reached ? <Check size={14} className="inline text-accent" /> : `−${fmtNum(g.remainingKg)}${g.forecast ? ` · ${fmtDate(g.forecast, 'MMM yy')}` : ''}`}</span></div>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${g.pct}%` }} /></div>
           </div>
         ))}

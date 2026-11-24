@@ -31,12 +31,15 @@ export async function monthImage(s: MonthSummary, title: string, exName: (id: st
   let y = 990;
   g.fillStyle = '#e8eaed'; g.font = font(36, 700);
   const lines = [
-    s.swimMin ? `🏊 ${s.swimMin} min nedant` : '',
-    s.extraMin ? `⛳ ${s.extraMin} min d'activitats extra` : '',
-    s.stepsAvg ? `👟 ${fmt(s.stepsAvg, 0)} passos de mitjana` : '',
-    s.prs[0] ? `🏆 ${exName(s.prs[0].exerciseId)}: ${s.prs[0].value}` : '',
+    s.swimMin ? `${s.swimMin} min nedant` : '',
+    s.extraMin ? `${s.extraMin} min d'activitats extra` : '',
+    s.stepsAvg ? `${fmt(s.stepsAvg, 0)} passos de mitjana` : '',
+    s.prs[0] ? `${exName(s.prs[0].exerciseId)}: ${s.prs[0].value}` : '',
   ].filter(Boolean).slice(0, 4);
-  for (const l of lines) { g.fillText(l, 80, y); y += 62; }
+  for (const l of lines) {
+    g.fillStyle = '#8eeac8'; g.beginPath(); g.arc(92, y - 12, 7, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#e8eaed'; g.fillText(l, 118, y); y += 62;
+  }
   g.fillStyle = '#5d6573'; g.font = font(26, 500); g.fillText('Fet amb constància, setmana a setmana.', 80, H - 70);
 
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'));

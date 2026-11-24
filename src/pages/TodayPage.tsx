@@ -1,9 +1,10 @@
 import clsx from 'clsx';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowRightLeft, BarChart3, ChevronRight, ClipboardCheck, Database, Play, Ruler, Scale, Snowflake } from 'lucide-react';
+import { Apple, ArrowRightLeft, BarChart3, Check, ChevronRight, ClipboardCheck, Database, Play, Ruler, Scale, Target } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { FeelingPicker, feelingEmoji } from '../components/Feeling';
+import { FeelingPicker } from '../components/Feeling';
+import { ActivityIcon, FeelingIcon, ModeIcon } from '../components/Icons';
 import { HabitsCard } from '../components/Habits';
 import { Button, Card, Field, inputCls, Notice, Page, ProgressBar, Row, Segmented, Sheet, Stepper } from '../components/ui';
 import { ACTIVITY_INFO, isMainActivity, WEEKDAY_SHORT } from '../data/plan';
@@ -61,13 +62,13 @@ export function TodayPage() {
   if (WEIGH_DAYS.includes(wd) && !weighIns.some((w) => w.date === today)) pending.push({ key: 'pes', to: '/pes', icon: <Scale size={18} />, label: 'Pesar-se' });
   if (wd === 1 && !measures.some((m) => m.date === today && m.waistCm != null)) pending.push({ key: 'cintura', to: '/pes#cintura', icon: <Ruler size={18} />, label: 'Mesurar la cintura' });
   if (!reviews.some((r) => r.week === prevWeek)) pending.push({ key: 'revisio', to: '/revisio', icon: <ClipboardCheck size={18} />, label: 'Revisió setmanal' });
-  if (hour >= 16.5 && hour < 18 && !logs.find((l) => l.date === today)?.snack) pending.push({ key: 'berenar', to: '/mes/alimentacio', icon: <span>🍎</span>, label: 'Berenar' });
+  if (hour >= 16.5 && hour < 18 && !logs.find((l) => l.date === today)?.snack) pending.push({ key: 'berenar', to: '/mes/alimentacio', icon: <Apple size={18} />, label: 'Berenar' });
   if (Number(today.slice(8, 10)) <= 7) pending.push({ key: 'resum', to: `/resum?mes=${prevMonth(today.slice(0, 7))}`, icon: <BarChart3 size={18} />, label: `Resum de ${fmtDate(`${prevMonth(today.slice(0, 7))}-01`, 'MMMM')}` });
-  if (!xmas && isChristmasSeason(today)) pending.push({ key: 'nadal', onClick: () => setChristmas(true, profile, a.current), icon: <Snowflake size={18} />, label: 'Mode Nadal' });
+  if (!xmas && isChristmasSeason(today)) pending.push({ key: 'nadal', onClick: () => setChristmas(true, profile, a.current), icon: <ModeIcon.christmas size={18} />, label: 'Mode Nadal' });
   if (sinceExport !== undefined && sinceExport > 14) pending.push({ key: 'copia', to: '/mes/dades', icon: <Database size={18} />, label: 'Còpia de seguretat' });
 
   return (
-    <Page title="Avui" subtitle={<span className="flex flex-wrap items-center gap-2">{fmtLong(today)}{travel && <Badge tone="info">🧳 Viatge</Badge>}{xmas && <Badge tone="info">🎄 Nadal</Badge>}</span>}>
+    <Page title="Avui" subtitle={<span className="flex flex-wrap items-center gap-2">{fmtLong(today)}{travel && <Badge tone="info"><ModeIcon.travel size={12} /> Viatge</Badge>}{xmas && <Badge tone="info"><ModeIcon.christmas size={12} /> Nadal</Badge>}</span>}>
       {active ? (
         <Link to="/entrenar/sessio"><Notice tone="ok">Tens un entrenament a mig fer. <strong>Continuar</strong></Notice></Link>
       ) : idleAlert ? (
@@ -97,7 +98,7 @@ export function TodayPage() {
             })}
             <span className="tabular pl-2 text-xs text-muted">{weekCount}/3</span>
           </div>
-          {goal && <p className="mt-3 text-sm text-muted">🎯 {goal}</p>}
+          {goal && <p className="mt-3 flex items-center gap-2 text-sm text-muted"><Target size={15} className="shrink-0" /> {goal}</p>}
         </div>
       </DayCard>
 
@@ -122,7 +123,7 @@ export function TodayPage() {
           </div>
           {nextGoal && (
             <div className="mt-4">
-              <div className="mb-1.5 flex justify-between text-xs text-muted"><span>{nextGoal.targetKg} kg</span><span className="tabular">{nextGoal.reached ? '✓' : `−${fmtNum(nextGoal.remainingKg)}`}</span></div>
+              <div className="mb-1.5 flex justify-between text-xs text-muted"><span>{nextGoal.targetKg} kg</span><span className="tabular">{nextGoal.reached ? <Check size={14} className="inline text-accent" /> : `−${fmtNum(nextGoal.remainingKg)}`}</span></div>
               <ProgressBar pct={nextGoal.pct} />
             </div>
           )}
@@ -152,9 +153,9 @@ function DayCard({ plan, done, isToday, activeSession, travel, onMove, onExtra, 
   const key = plan.activity === 'forca_A' ? 'A' : plan.activity === 'forca_B' ? 'B' : plan.activity === 'hotel' ? 'H' : null;
   const tag = plan.comeback ? 'Tornada' : plan.travel ? 'Viatge' : plan.override ? 'Canviat' : null;
   const doneItems = [
-    ...done.sessions.map((s) => ({ id: s.id, to: `/progres/sessio/${s.id}`, text: `${s.dayKey === 'H' ? "Rutina d'hotel" : `Força ${s.dayKey}`}${s.cardio?.done ? ` + cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}` })),
-    ...done.swims.map((s) => ({ id: s.id, to: '/natacio', text: `Natació ${s.durationMin}' ${feelingEmoji(s.feeling)}${s.distanceM ? ` · ${fmtMeters(s.distanceM)}` : ''}` })),
-    ...done.extras.map((e) => ({ id: e.id, to: undefined, text: `${EXTRA_LABEL[e.kind]} ${e.minutes}' ${feelingEmoji(e.feeling)}` })),
+    ...done.sessions.map((s) => ({ id: s.id, feeling: undefined, to: `/progres/sessio/${s.id}`, text: `${s.dayKey === 'H' ? "Rutina d'hotel" : `Força ${s.dayKey}`}${s.cardio?.done ? ` + cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}` })),
+    ...done.swims.map((s) => ({ id: s.id, to: '/natacio', text: `Natació ${s.durationMin}'${s.distanceM ? ` · ${fmtMeters(s.distanceM)}` : ''}`, feeling: s.feeling })),
+    ...done.extras.map((e) => ({ id: e.id, to: undefined, text: `${EXTRA_LABEL[e.kind]} ${e.minutes}'`, feeling: e.feeling })),
   ];
 
   return (
@@ -166,16 +167,17 @@ function DayCard({ plan, done, isToday, activeSession, travel, onMove, onExtra, 
         </div>
       )}
       <div className="flex items-center gap-4">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-surface-2 text-[34px]">{info.emoji}</span>
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-surface-2 text-accent"><ActivityIcon activity={plan.activity} size={30} /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[22px] leading-tight font-semibold tracking-tight">{info.label}</div>
-          {(plan.comeback || ok || isMainActivity(plan.activity)) && <div className="mt-0.5 text-sm text-muted">{plan.comeback ? 'Encara que siguin 30 min' : ok ? 'Fet ✓' : info.sub}</div>}
+          {(plan.comeback || ok || isMainActivity(plan.activity)) && <div className="mt-0.5 text-sm text-muted">{plan.comeback ? 'Encara que siguin 30 min' : ok ? 'Fet' : info.sub}</div>}
         </div>
       </div>
 
       {doneItems.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
-          {doneItems.map((d) => <li key={d.id}>{d.to ? <Link to={d.to} className="text-accent">✓ {d.text}</Link> : <span className="text-accent">✓ {d.text}</span>}</li>)}
+          {doneItems.map((d) => { const inner = <><Check size={14} className="shrink-0" /> {d.text} {'feeling' in d && <FeelingIcon value={d.feeling} size={15} className="text-accent" />}</>;
+            return <li key={d.id}>{d.to ? <Link to={d.to} className="flex items-center gap-1.5 text-accent">{inner}</Link> : <span className="flex items-center gap-1.5 text-accent">{inner}</span>}</li>; })}
         </ul>
       )}
 
@@ -213,7 +215,7 @@ function MoveList({ from, profile, schedule, onPick, onReset }: {
             <li key={d}>
               <button className="flex w-full items-center gap-3 py-3 text-left active:opacity-70" onClick={() => onPick(d)}>
                 <span className="w-24 font-medium">{fmtDate(d, 'EEE d MMM')}</span>
-                <span className="flex-1 text-sm text-muted">{ACTIVITY_INFO[p.activity].emoji} {ACTIVITY_INFO[p.activity].label}</span>
+                <span className="flex flex-1 items-center gap-2 text-sm text-muted"><ActivityIcon activity={p.activity} size={16} /> {ACTIVITY_INFO[p.activity].label}</span>
                 <ChevronRight size={18} className="text-muted" />
               </button>
             </li>

@@ -16,13 +16,13 @@ export const WEEKDAY_SHORT = ['Dg', 'Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds'];
 /** Ordre de la setmana començant per dilluns */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-export const ACTIVITY_INFO: Record<PlanActivity, { label: string; sub: string; emoji: string }> = {
-  natacio: { label: 'Natació', sub: '40–45 min', emoji: '🏊' },
-  forca_A: { label: 'Força A + cardio', sub: '60–75 min', emoji: '🏋️' },
-  forca_B: { label: 'Força B + cardio', sub: '60–75 min', emoji: '🏋️' },
-  hotel: { label: "Rutina d'hotel", sub: '3 voltes · ~20 min', emoji: '🧳' },
-  extra: { label: 'Extra opcional', sub: 'Pàdel, pitch and putt, caminar', emoji: '⛳' },
-  descans: { label: 'Descans', sub: 'Passos diaris i prou', emoji: '😴' },
+export const ACTIVITY_INFO: Record<PlanActivity, { label: string; sub: string }> = {
+  natacio: { label: 'Natació', sub: '40–45 min' },
+  forca_A: { label: 'Força A + cardio', sub: '60–75 min' },
+  forca_B: { label: 'Força B + cardio', sub: '60–75 min' },
+  hotel: { label: "Rutina d'hotel", sub: '3 voltes · ~20 min' },
+  extra: { label: 'Extra opcional', sub: 'Pàdel, pitch and putt, caminar' },
+  descans: { label: 'Descans', sub: 'Passos diaris i prou' },
 };
 
 /** Activitats que compten com a sessió de la setmana (/3) */

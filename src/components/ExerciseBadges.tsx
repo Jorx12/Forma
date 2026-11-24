@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Heart } from 'lucide-react';
 import { FOOT_LABEL, PATTERN_SHORT, POSITION_LABEL } from '../data/catalog';
 import type { Exercise } from '../db/types';
 import { Badge } from './ui';
@@ -15,7 +15,7 @@ export function ExerciseBadges({ e, pattern = true }: { e: Exercise; pattern?: b
       {pattern && <Badge>{PATTERN_SHORT[e.pattern]}</Badge>}
       <Badge>{POSITION_LABEL[e.position]}</Badge>
       <FootBadge e={e} />
-      {e.preference === 'like' && <Badge tone="accent">♥</Badge>}
+      {e.preference === 'like' && <Badge tone="accent"><Heart size={11} /></Badge>}
     </div>
   );
 }

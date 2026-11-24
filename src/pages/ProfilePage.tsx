@@ -93,7 +93,7 @@ export function ProfilePage() {
 
       {(dirty || saved) && (
         <div className="fixed inset-x-0 bottom-[92px] z-30 mx-auto max-w-xl px-5">
-          <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat ✓' : 'Desar canvis'}</Button>
+          <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat' : 'Desar canvis'}</Button>
         </div>
       )}
     </Page>

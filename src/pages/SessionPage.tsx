@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { Check, ChevronDown, ChevronUp, Minus, MoreVertical, Plus, Replace, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Minus, MoreVertical, Plus, Replace, RotateCw, Sparkles, StickyNote, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { WARMUP } from '../data/catalog';
@@ -21,7 +21,7 @@ import { summarizeEntry } from '../lib/stats';
 import { ExercisePicker } from './RoutinePage';
 
 const SUGGESTION_TONE = { pujar: 'accent', mantenir: 'info', repetir: 'info', baixar: 'warn', descarrega: 'warn', primera: 'muted' } as const;
-const SUGGESTION_ARROW = { pujar: '↑', mantenir: '→', repetir: '↻', baixar: '↓', descarrega: '↓', primera: '·' } as const;
+const SUGGESTION_ICON = { pujar: ArrowUp, mantenir: ArrowRight, repetir: RotateCw, baixar: ArrowDown, descarrega: ArrowDown, primera: Sparkles } as const;
 const TONE_TEXT = { accent: 'text-accent', info: 'text-info', warn: 'text-warn', muted: 'text-muted' } as const;
 const EFFORTS: { value: Effort; label: string }[] = [{ value: 'facil', label: 'Fàcil' }, { value: 'correcte', label: 'Correcte' }, { value: 'dur', label: 'Dur' }];
 
@@ -256,7 +256,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
 
       {open && (
         <div className="space-y-3 px-4 pb-4">
-          {exercise?.note && <div className="text-sm text-muted">📝 {exercise.note}</div>}
+          {exercise?.note && <div className="flex items-center gap-2 text-sm text-muted"><StickyNote size={14} className="shrink-0" /> {exercise.note}</div>}
           {alternatives.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-sm">
               <span className="text-muted">O bé:</span>
@@ -267,8 +267,8 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
           <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">
             <span className="text-muted">Última: </span><span className="font-medium">{last ? summarizeEntry(last, { seconds: secs }) : '—'}</span>
             {entry.suggestion && (
-              <div className={clsx('mt-1 text-xs', TONE_TEXT[SUGGESTION_TONE[entry.suggestion.kind]])}>
-                {SUGGESTION_ARROW[entry.suggestion.kind]} {entry.suggestion.reason}
+              <div className={clsx('mt-1 flex items-center gap-1.5 text-xs', TONE_TEXT[SUGGESTION_TONE[entry.suggestion.kind]])}>
+                {(() => { const I = SUGGESTION_ICON[entry.suggestion.kind]; return <I size={13} strokeWidth={2} className="shrink-0" />; })()} {entry.suggestion.reason}
               </div>
             )}
           </div>

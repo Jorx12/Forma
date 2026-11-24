@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { ClipboardPaste, Footprints } from 'lucide-react';
+import { Apple, ClipboardPaste, Footprints, GlassWater, Scale, Wine } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { DailyLog } from '../db/types';
@@ -20,15 +20,15 @@ export function HabitsCard({ date, log }: { date: string; log?: DailyLog }) {
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
         <button onClick={() => setLog(date, { snack: !log?.snack })}
           className={clsx(pill, log?.snack ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
-          <span className="text-xl leading-none">🍎</span>Berenar
+          <Apple size={21} strokeWidth={1.7} />Berenar
         </button>
         <button onClick={() => setLog(date, { alcohol: log?.alcohol === true ? false : log?.alcohol === false ? undefined : true })}
           className={clsx(pill, log?.alcohol === true ? 'border-warn/40 bg-warn/15 text-warn' : log?.alcohol === false ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
-          <span className="text-xl leading-none">{log?.alcohol === false ? '💧' : '🍷'}</span>
+          {log?.alcohol === false ? <GlassWater size={21} strokeWidth={1.7} /> : <Wine size={21} strokeWidth={1.7} />}
           {log?.alcohol === true ? 'Alcohol' : log?.alcohol === false ? 'Sense' : 'Alcohol'}
         </button>
         <button onClick={() => setStepsOpen(true)} className={clsx(pill, 'border-line bg-surface-2')}>
-          <Footprints size={20} className={stepsTone} />
+          <Footprints size={21} strokeWidth={1.7} className={stepsTone} />
           <span className={clsx('tabular', stepsTone)}>{steps != null ? steps.toLocaleString('ca-ES') : 'Passos'}</span>
         </button>
         <button aria-label="Enganxar de l'app Salut" className="flex w-9 items-center justify-center rounded-2xl text-muted active:bg-surface-2" onClick={() => setPaste(true)}><ClipboardPaste size={17} /></button>
@@ -90,8 +90,8 @@ export function PasteShortcut({ initial, onDone }: { initial?: ShortcutData | nu
         <>
           <div className="rounded-xl bg-surface-2 p-3 text-sm">
             <div className="mb-1 text-xs text-muted">{fmtDate(data.date ?? todayISO(), 'EEEE d MMMM')}</div>
-            {data.steps != null && <div>👟 <strong>{data.steps.toLocaleString('ca-ES')}</strong> passos</div>}
-            {data.weightKg != null && <div>⚖️ <strong>{data.weightKg.toLocaleString('ca-ES')} kg</strong></div>}
+            {data.steps != null && <div className="flex items-center gap-2"><Footprints size={15} className="text-muted" /> <strong>{data.steps.toLocaleString('ca-ES')}</strong> passos</div>}
+            {data.weightKg != null && <div className="flex items-center gap-2"><Scale size={15} className="text-muted" /> <strong>{data.weightKg.toLocaleString('ca-ES')} kg</strong></div>}
           </div>
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => setData(null)}>Cancel·lar</Button>

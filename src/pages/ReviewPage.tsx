@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Luggage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button, Card, inputCls, Notice, Page, Stepper } from '../components/ui';
@@ -52,17 +52,17 @@ export function ReviewPage() {
     <Page title="Revisió" back>
       <div className="-mt-2 flex items-center gap-2">
         <button aria-label="Setmana anterior" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2" onClick={() => setWeek(addDaysISO(week, -7))}><ChevronLeft /></button>
-        <div className="flex-1 text-center text-sm"><strong>{fmtDate(week, 'd MMM')} – {fmtDate(addDaysISO(week, 6), 'd MMM')}</strong>{existing && <span className="ml-2 text-accent">✓</span>}</div>
+        <div className="flex-1 text-center text-sm"><strong>{fmtDate(week, 'd MMM')} – {fmtDate(addDaysISO(week, 6), 'd MMM')}</strong>{existing && <Check size={14} className="ml-1.5 inline text-accent" />}</div>
         <button aria-label="Setmana següent" disabled={!canNext} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 disabled:opacity-30" onClick={() => setWeek(addDaysISO(week, 7))}><ChevronRight /></button>
       </div>
 
       {insight && f.alcoholDays >= 2 && (
-        <Notice tone="info">🍷 3+ dies d'alcohol: {insight.high >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.high), 2)} kg/setm. · 2 o menys: {insight.low >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.low), 2)} kg/setm.</Notice>
+        <Notice tone="info">3+ dies d'alcohol: {insight.high >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.high), 2)} kg/setm. · 2 o menys: {insight.low >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.low), 2)} kg/setm.</Notice>
       )}
       {alerts.map((x) => (
         <Notice key={x.id} tone={x.tone}>
           {x.text}
-          {x.action === 'hotel' && <Button size="sm" className="mt-2 w-full" onClick={() => nav('/entrenar?dia=H')}>🧳 Rutina d'hotel</Button>}
+          {x.action === 'hotel' && <Button size="sm" className="mt-2 w-full" onClick={() => nav('/entrenar?dia=H')}><Luggage size={16} /> Rutina d'hotel</Button>}
         </Notice>
       ))}
 
@@ -85,7 +85,7 @@ export function ReviewPage() {
         </ul>
       </Card>
 
-      <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat ✓' : existing ? 'Actualitzar' : 'Desar'}</Button>
+      <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat' : existing ? 'Actualitzar' : 'Desar'}</Button>
     </Page>
   );
 }

@@ -5,6 +5,7 @@ import { db, uid } from '../db/db';
 import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
+import { FootWarn } from '../components/Icons';
 import { Button, Card, Disclosure, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
 import { CARDIO_ALLOWED, CARDIO_MACHINES, HIIT_PROTOCOLS } from '../data/cardio';
 import { dayLabel, personalRoutine } from '../data/plan';
@@ -94,7 +95,7 @@ export function RoutinePage() {
                     <li key={`${it.exerciseId}-${i}`} className={fitted ? '' : 'opacity-45'}>
                       <button className="flex w-full items-center gap-3 py-3 text-left active:opacity-70" onClick={() => setSheet({ kind: 'edit', day: d.key, idx: i })}>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-medium">{e?.name ?? 'Exercici esborrat'}{e?.footImpact === 'alt' && ' ⚠️'}</span>
+                          <span className="block truncate text-[15px] font-medium">{e?.name ?? 'Exercici esborrat'}{e?.footImpact === 'alt' && <> <FootWarn /></>}</span>
                           <span className="block text-xs text-muted">{fitted ? fitted.sets : it.sets} × {r}</span>
                         </span>
                       </button>

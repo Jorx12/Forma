@@ -2,7 +2,8 @@ import clsx from 'clsx';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { FeelingPicker, feelingEmoji } from '../components/Feeling';
+import { FeelingPicker } from '../components/Feeling';
+import { FeelingIcon } from '../components/Icons';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { db, uid } from '../db/db';
 import { useSwims } from '../db/hooks';
@@ -52,7 +53,7 @@ export function SwimPage() {
               <li key={s.id} className="flex items-center gap-3 py-2.5">
                 
                 <div className="min-w-0 flex-1">
-                  <div className="text-[15px]">{s.durationMin} min {feelingEmoji(s.feeling)}<span className="ml-2 text-sm text-muted">{fmtDate(s.date, 'EEE d MMM')}</span></div>
+                  <div className="text-[15px]">{s.durationMin} min <FeelingIcon value={s.feeling} /><span className="ml-2 text-sm text-muted">{fmtDate(s.date, 'EEE d MMM')}</span></div>
                   {(s.distanceM > 0 || s.note) && <div className="truncate text-xs text-muted">{s.distanceM > 0 && `${fmtMeters(s.distanceM)} · ${fmtPace(pace100(s))}`}{s.note && ` ${s.note}`}</div>}
                 </div>
                 <button aria-label="Editar" onClick={() => setEdit(s)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted active:bg-surface-2"><Pencil size={18} /></button>
@@ -79,7 +80,7 @@ function SwimForm({ last }: { last?: Swim }) {
   };
   return (
     <Card>
-      <SwimFields key={key} initial={initial} saveLabel={saved ? 'Desat ✓' : 'Desar'} onSave={async (s) => {
+      <SwimFields key={key} initial={initial} saveLabel={saved ? 'Desat' : 'Desar'} onSave={async (s) => {
         await db.swims.put({ ...s, id: uid() });
         setSaved(true); setKey(key + 1);
         setTimeout(() => setSaved(false), 2000);

@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { BarChart3, CalendarDays, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User, Zap } from 'lucide-react';
+import { BarChart3, CalendarDays, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Luggage, Salad, Smartphone, TreePine, User, Zap } from 'lucide-react';
 import { Card, Page, Row } from '../components/ui';
 import { useProfile, useSessions, useWeighIns } from '../db/hooks';
 import { setChristmas, setTravel } from '../lib/schedule';
@@ -59,9 +59,9 @@ function ModesCard() {
   return (
     <Card title="Modes" className="py-3">
       <div className="-mt-2 divide-y divide-line">
-        <Row icon={<span>🧳</span>} label="Viatge"
+        <Row icon={<Luggage size={18} />} label="Viatge"
           right={<Toggle on={!!m?.travel.active} onChange={(v) => setTravel(v, profile, sessions)} />} />
-        <Row icon={<span>🎄</span>} label="Nadal"
+        <Row icon={<TreePine size={18} />} label="Nadal"
           right={<Toggle on={!!m?.christmas.active} onChange={(v) => setChristmas(v, profile, current)} />} />
       </div>
     </Card>

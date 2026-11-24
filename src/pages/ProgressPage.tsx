@@ -1,4 +1,4 @@
-import { BarChart3, ChevronRight } from 'lucide-react';
+import { BarChart3, ChevronRight, Luggage } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { MUSCLE_LABEL } from '../data/catalog';
@@ -36,7 +36,7 @@ function History() {
             <li key={s.id}>
               <Link to={`/progres/sessio/${s.id}`} className="glass flex items-center gap-3 rounded-[22px] p-3 active:opacity-80">
                 <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2">
-                  <span className="text-lg font-bold leading-none">{s.dayKey === 'H' ? '🧳' : s.dayKey}</span>
+                  <span className="text-lg font-bold leading-none">{s.dayKey === 'H' ? <Luggage size={18} strokeWidth={1.6} /> : s.dayKey}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{fmtDate(s.startedAt.slice(0, 10), "EEEE d MMM")}

@@ -64,14 +64,14 @@ export function HiitBlock({ sessionId, cardio, onChange, onAdd }: {
   return (
     <>
       <Card title={`Cardio · ${Math.round(total / 60)} min`}>
-        <Notice tone="warn">⚠️ {CARDIO_WARNING}</Notice>
+        <Notice tone="warn">{CARDIO_WARNING}</Notice>
         <div className="mt-3" />
         <Field label="Màquina">
           <div className="grid grid-cols-3 gap-1.5">
             {CARDIO_MACHINES.filter((m) => CARDIO_ALLOWED.includes(m.id) || m.id === cardio.machine).map((m) => (
               <button key={m.id} onClick={() => replan({ machine: m.id })}
                 className={clsx('min-h-11 rounded-xl px-2 text-sm font-medium', cardio.machine === m.id ? 'bg-accent text-accent-ink' : 'bg-surface-2')}>
-                {m.label}{m.foot !== 'baix' && ' ⚠️'}
+                {m.label}
               </button>
             ))}
           </div>
@@ -162,7 +162,7 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center">
         <div className="text-2xl font-semibold uppercase tracking-[0.2em] opacity-80">{PHASE_LABEL[phase.kind]}</div>
-        <div className="tabular text-[6.5rem] leading-none font-semibold tracking-tight">{paused ? '❚❚' : fmtClock(left)}</div>
+        <div className="tabular text-[6.5rem] leading-none font-semibold tracking-tight">{paused ? <Pause size={96} strokeWidth={1.4} className="mx-auto" /> : fmtClock(left)}</div>
         {phase.round > 0 && phase.kind !== 'calma' && <div className="text-xl font-semibold">Ronda {phase.round} / {cardio.rounds}</div>}
         {next && <div className="mt-2 text-sm opacity-75">Després: {PHASE_LABEL[next.kind].toLowerCase()} {next.end - next.start}"</div>}
       </div>

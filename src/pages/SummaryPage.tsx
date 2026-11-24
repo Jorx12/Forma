@@ -24,7 +24,7 @@ export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) 
   const KIND = { pes: 'Pes màxim', '1rm': '1RM estimat', reps: 'Repeticions' } as const;
 
   return (
-    <Page title={fromHistory ? sessionLabel(s.dayKey) : 'Entrenament acabat 💪'} back={fromHistory ? true : undefined}>
+    <Page title={fromHistory ? sessionLabel(s.dayKey) : 'Sessió feta'} back={fromHistory ? true : undefined}>
       <p className="-mt-2 text-sm text-muted">{fmtLong(s.startedAt.slice(0, 10))} · {sessionLabel(s.dayKey)}{s.comeback && ' · tornada'}
         {s.flags.adaptation && ' · adaptació'}{s.flags.deload && ' · descàrrega'}{s.isDemo && ' · prova'}</p>
       <div className="grid grid-cols-3 gap-2">

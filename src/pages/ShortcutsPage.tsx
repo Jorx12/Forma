@@ -18,7 +18,7 @@ export function ShortcutsPage() {
           <li><em>Opcional, pes:</em> una altra <strong>Cerca mostres de Salut</strong> amb tipus <strong>Pes</strong>, data d'inici <strong>és avui</strong>, ordenades per data (la més recent primer) i límit <strong>1</strong>.</li>
           <li>Afegeix l'acció <strong>Text</strong> i escriu-hi (inserint les variables dels passos anteriors on hi ha els claudàtors):
             <div className="mt-1.5 rounded-lg bg-surface-2 px-3 py-2 font-mono text-xs">{TEMPLATE}</div>
-            <Button size="sm" className="mt-1.5" onClick={async () => { try { await navigator.clipboard.writeText('FORMA passos= pes='); setCopied(true); } catch { /* ignore */ } }}>{copied ? 'Copiat ✓' : 'Copiar el text base'}</Button>
+            <Button size="sm" className="mt-1.5" onClick={async () => { try { await navigator.clipboard.writeText('FORMA passos= pes='); setCopied(true); } catch { /* ignore */ } }}>{copied ? 'Copiat' : 'Copiar el text base'}</Button>
           </li>
           <li>Afegeix <strong>Copia al porta-retalls</strong> (<em>Copy to Clipboard</em>).</li>
           <li><em>Opcional:</em> <strong>Mostra una notificació</strong> amb «Obre Forma i enganxa».</li>

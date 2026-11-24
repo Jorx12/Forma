@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { Plus, Search, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import { Check, Plus, Search, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import { FootWarn } from '../components/Icons';
 import { useMemo, useState } from 'react';
 import { FOOT_LABEL, MUSCLE_LABEL, MUSCLE_ORDER, PATTERN_LABEL, POSITION_LABEL } from '../data/catalog';
 import { db, uid } from '../db/db';
@@ -49,14 +50,14 @@ export function CatalogPage() {
 
 function ExerciseRow({ e, onOpen }: { e: Exercise; onOpen: () => void }) {
   const setPref = (p: Preference) => db.exercises.update(e.id, { preference: e.preference === p ? 'neutral' : p });
-  const foot = e.footImpact === 'alt' ? 'peu: alt ⚠️' : e.footImpact === 'mitja' ? 'peu: mitjà' : 'peu: baix';
+  const foot = e.footImpact === 'alt' ? 'peu: alt' : e.footImpact === 'mitja' ? 'peu: mitjà' : 'peu: baix';
   return (
     <li className="flex items-center gap-2 py-2.5">
       <button aria-label={e.available ? 'La tinc' : 'No la tinc'} onClick={() => db.exercises.update(e.id, { available: !e.available })}
-        className={clsx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm', e.available ? 'border-accent bg-accent text-accent-ink' : 'border-line text-transparent')}>✓</button>
+        className={clsx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm', e.available ? 'border-accent bg-accent text-accent-ink' : 'border-line text-transparent')}><Check size={15} strokeWidth={2.4} /></button>
       <button className="min-w-0 flex-1 text-left" onClick={onOpen}>
         <div className={clsx('truncate text-[15px] font-medium', !e.available && 'text-muted')}>{e.name}</div>
-        {(e.footImpact !== 'baix' || e.note) && <div className={clsx('truncate text-xs', e.footImpact === 'alt' ? 'text-warn' : 'text-muted')}>{e.footImpact !== 'baix' ? foot : ''}{e.footImpact !== 'baix' && e.note ? ' · ' : ''}{e.note ?? ''}</div>}
+        {(e.footImpact !== 'baix' || e.note) && <div className={clsx('truncate text-xs', e.footImpact === 'alt' ? 'text-warn' : 'text-muted')}>{e.footImpact === 'alt' && <FootWarn size={12} />} {e.footImpact !== 'baix' ? foot : ''}{e.footImpact !== 'baix' && e.note ? ' · ' : ''}{e.note ?? ''}</div>}
       </button>
       <button aria-label="M'agrada" onClick={() => setPref('like')}
         className={clsx('flex h-9 w-9 items-center justify-center rounded-full', e.preference === 'like' ? 'bg-accent/15 text-accent' : 'text-muted/60')}><ThumbsUp size={16} /></button>

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Share2, Trophy } from 'lucide-react';
+import { Apple, ChevronLeft, ChevronRight, Footprints, Share2, Trophy, Wine } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Button, Card, Empty, Page, Stat } from '../components/ui';
@@ -56,9 +56,9 @@ export function MonthlyPage() {
           {s.loggedDays > 0 && (
             <Card>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.snacks}</div><div className="text-[11px] text-muted">🍎</div></div>
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.alcoholDays}</div><div className="text-[11px] text-muted">🍷</div></div>
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.stepsAvg != null ? s.stepsAvg.toLocaleString('ca-ES') : '—'}</div><div className="text-[11px] text-muted">👟/dia</div></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.snacks}</div><Apple size={15} className="mx-auto mt-1 text-muted" /></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.alcoholDays}</div><Wine size={15} className="mx-auto mt-1 text-muted" /></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.stepsAvg != null ? s.stepsAvg.toLocaleString('ca-ES') : '—'}</div><Footprints size={15} className="mx-auto mt-1 text-muted" /></div>
               </div>
             </Card>
           )}
