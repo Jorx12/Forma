@@ -5,10 +5,10 @@ import { db, uid } from '../db/db';
 import { useMeasurements, useProfile, useWeighIns } from '../db/hooks';
 import { MetricLine } from '../components/MiniChart';
 import type { Profile, WeighIn } from '../db/types';
-import { Badge, Button, Card, Disclosure, Empty, Field, inputCls, Notice, Page, Sheet, Stat, Stepper } from '../components/ui';
+import { Button, Card, Disclosure, Empty, Field, inputCls, Notice, Page, Sheet, Stat, Stepper } from '../components/ui';
 import { WeightChart } from '../components/WeightChart';
 import { dayNum, fmtDate, fmtNum, todayISO } from '../lib/dates';
-import { analyzeWeight, bmiLabel, statusLabel, type WeightAnalysis } from '../lib/weight';
+import { analyzeWeight, statusLabel, type WeightAnalysis } from '../lib/weight';
 
 export function WeightPage() {
   const profile = useProfile();
@@ -24,28 +24,27 @@ export function WeightPage() {
   const a = analyzeWeight(profile, weighIns);
 
   return (
-    <Page title="Pes" subtitle="Dl, dc i dv al matí · compta la mitjana setmanal">
+    <Page title="Pes">
       {a.tooFast && !a.maintain && <TooFastNotice a={a} />}
       <WeightIndicators profile={profile} a={a}>
         <div className="mt-5"><WeightChart profile={profile} weighIns={a.sorted} /></div>
       </WeightIndicators>
       <WeighInForm key={a.lastWeighIn?.id ?? 'x'} initialKg={a.lastWeighIn?.weightKg ?? a.current} />
       <WaistCard />
-      <Card title="Registres">
+      <Card title="Historial">
         {a.sorted.length === 0 ? <Empty>Encara no hi ha cap pesada.</Empty> : (
           <ul className="divide-y divide-line">
             {[...a.sorted].reverse().slice(0, showAll ? undefined : 6).map((w) => (
-              <li key={w.id} className="flex items-center gap-3 py-2.5">
+              <li key={w.id} className="flex items-center gap-3 py-2">
                 <div className="flex-1">
-                  <div className="tabular font-semibold">{fmtNum(w.weightKg)} kg{w.bodyFatPct != null && <span className="ml-2 text-sm font-normal text-muted">{fmtNum(w.bodyFatPct)} % greix</span>}</div>
-                  <div className="text-xs text-muted">{fmtDate(w.date)}{w.note && ` · ${w.note}`}{w.isDemo && ' · prova'}</div>
+                  <div className="tabular text-[15px]">{fmtNum(w.weightKg)} kg<span className="ml-2 text-sm text-muted">{fmtDate(w.date, 'EEE d MMM')}{w.note && ` · ${w.note}`}</span></div>
                 </div>
                 <button aria-label="Editar" onClick={() => setEditing(w)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted active:bg-surface-2"><Pencil size={18} /></button>
               </li>
             ))}
           </ul>
         )}
-        {a.sorted.length > 6 && !showAll && <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => setShowAll(true)}>Veure totes ({a.sorted.length})</Button>}
+        {a.sorted.length > 6 && !showAll && <Button size="sm" variant="ghost" className="mt-1 w-full" onClick={() => setShowAll(true)}>Veure-ho tot</Button>}
       </Card>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title="Editar pesada">
         {editing && <WeighInEditor w={editing} onDone={() => setEditing(null)} />}
@@ -75,14 +74,14 @@ function WeighInForm({ initialKg }: { initialKg: number }) {
   }
 
   return (
-    <Card title="Nova pesada">
+    <Card>
       <div className="space-y-4">
         <Stepper value={kg} onChange={setKg} step={0.1} digits={1} min={30} max={250} unit="kg" />
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <input type="date" aria-label="Data" className={inputCls} value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
           <Button variant="primary" className="px-6" onClick={save}>{saved ? 'Desat ✓' : 'Desar'}</Button>
         </div>
-        <Disclosure label="% greix i nota">
+        <Disclosure label="Greix i nota">
           <div className="grid grid-cols-2 gap-2">
             <input inputMode="decimal" aria-label="% greix" className={inputCls} placeholder="% greix" value={fat} onChange={(e) => setFat(e.target.value)} />
             <input aria-label="Nota" className={inputCls} placeholder="Nota" value={note} onChange={(e) => setNote(e.target.value)} />
@@ -135,15 +134,12 @@ const rate = (r?: number) => (r === undefined ? '—' : `${r > 0 ? '+' : ''}${fm
 export function WeightIndicators({ profile, a, children }: { profile: Profile; a: WeightAnalysis; children?: React.ReactNode }) {
   return (
     <Card>
-      <div className="flex items-center justify-between text-xs text-muted">
-        <span>{a.currentWeek ? `Setmana del ${fmtDate(a.currentWeek, 'd MMM')} · ${a.currentN} pesades` : 'Pes inicial'}</span>
-        <Badge tone={statusTone(a.status)}>{statusLabel(a)}</Badge>
-      </div>
-      <div className="mt-2 flex items-baseline gap-1.5">
+      <div className="text-xs text-muted">Mitjana setmanal</div>
+      <div className="mt-1 flex items-baseline gap-1.5">
         <span className="tabular text-[44px] leading-none font-semibold tracking-tight">{fmtNum(a.current)}</span>
         <span className="text-muted">kg</span>
         {a.weeklyChange !== undefined && (
-          <span className={`tabular ml-auto text-sm ${a.weeklyChange <= 0 ? 'text-accent' : 'text-warn'}`}>{a.weeklyChange > 0 ? '+' : '−'}{fmtNum(Math.abs(a.weeklyChange), 2)} kg/setm.</span>
+          <span className={`tabular ml-auto text-sm ${a.weeklyChange <= 0 ? 'text-accent' : 'text-warn'}`}>{a.weeklyChange > 0 ? '+' : '−'}{fmtNum(Math.abs(a.weeklyChange), 2)}</span>
         )}
       </div>
       {a.maintain && <p className="mt-2 text-sm text-muted">🎄 Mantenir {fmtNum(profile.modes?.christmas.refKg ?? a.current)} kg (±0,5)</p>}
@@ -152,20 +148,20 @@ export function WeightIndicators({ profile, a, children }: { profile: Profile; a
         {a.goals.map((g) => (
           <div key={g.id}>
             <div className="mb-1.5 flex justify-between text-xs"><span>{g.targetKg} kg</span>
-              <span className="tabular text-muted">{g.reached ? 'Assolit' : `falten ${fmtNum(g.remainingKg)} kg${g.forecast ? ` · previsió ${fmtDate(g.forecast, 'MMM yy')}` : ''}`}</span></div>
+              <span className="tabular text-muted">{g.reached ? '✓' : `−${fmtNum(g.remainingKg)}${g.forecast ? ` · ${fmtDate(g.forecast, 'MMM yy')}` : ''}`}</span></div>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${g.pct}%` }} /></div>
           </div>
         ))}
       </div>
       <div className="mt-5">
-        <Disclosure label="Més dades">
+        <Disclosure label="Detalls">
           <div className="grid grid-cols-2 gap-2">
-            <Stat label="Perduts" value={`${fmtNum(a.lostKg)} kg`} sub={`des de ${fmtNum(profile.startWeightKg)} kg`} />
-            <Stat label="IMC" value={fmtNum(a.bmi)} sub={bmiLabel(a.bmi)} />
-            <Stat label="Ritme real" value={`${rate(a.rateKgWeek)} kg/s`} sub={a.rateWindowWeeks ? `${a.rateWindowWeeks} setmanes` : 'calen 2 setmanes'} />
-            <Stat label="Ritme necessari" value={`${rate(a.requiredKgWeek)} kg/s`} sub="per a la propera fita" />
+            <Stat label="Perduts" value={`${fmtNum(a.lostKg)} kg`} />
+            <Stat label="Estat" value={statusLabel(a)} tone={a.status === 'per_darrere' ? 'warn' : 'accent'} />
+            <Stat label="Ritme real" value={`${rate(a.rateKgWeek)} kg/s`} />
+            <Stat label="Ritme necessari" value={`${rate(a.requiredKgWeek)} kg/s`} />
+            <Stat label="IMC" value={fmtNum(a.bmi)} />
             {a.bodyFat != null && <Stat label="% greix" value={`${fmtNum(a.bodyFat)} %`} />}
-            {a.status !== 'sense_dades' && <Stat label="Segons el pla" value={`${fmtNum(a.expectedNow)} kg`} sub={`${a.diffVsPlan > 0 ? '+' : ''}${fmtNum(a.diffVsPlan)} kg`} />}
           </div>
         </Disclosure>
       </div>
@@ -184,7 +180,7 @@ function WaistCard() {
   const first = waist[0];
   return (
     <section id="cintura">
-      <Card title="Cintura · dilluns" right={last && first && last !== first ? <span className={`tabular text-xs ${last.waistCm! < first.waistCm! ? 'text-accent' : 'text-muted'}`}>{last.waistCm! - first.waistCm! > 0 ? '+' : '−'}{fmtNum(Math.abs(last.waistCm! - first.waistCm!))} cm des de l'inici</span> : undefined}>
+      <Card title="Cintura" right={last && first && last !== first ? <span className={`tabular text-xs ${last.waistCm! < first.waistCm! ? 'text-accent' : 'text-muted'}`}>{last.waistCm! - first.waistCm! > 0 ? '+' : '−'}{fmtNum(Math.abs(last.waistCm! - first.waistCm!))} cm</span> : undefined}>
         <Stepper value={value} onChange={setCm} step={0.5} digits={1} min={50} max={200} unit="cm" />
         <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
           <input type="date" aria-label="Data" className={inputCls} value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
@@ -197,8 +193,7 @@ function WaistCard() {
         {waist.length > 1 && <div className="mt-5"><MetricLine data={waist.map((m) => ({ x: dayNum(m.date), y: m.waistCm! }))} unit="cm" color="var(--warn)" height={140} /></div>}
         {waist.length > 0 && (
           <div className="mt-3">
-            <Disclosure label="Historial i com mesurar">
-              <p className="mb-2 text-xs text-muted">Al melic, de peu, relaxat i després de treure l'aire.</p>
+            <Disclosure label="Historial">
               <ul className="divide-y divide-line text-sm">
                 {[...waist].reverse().slice(0, 8).map((m) => (
                   <li key={m.id} className="flex items-center justify-between py-2">

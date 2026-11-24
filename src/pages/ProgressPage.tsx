@@ -1,13 +1,12 @@
-import { ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { BarChart3, ChevronRight } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { MUSCLE_LABEL } from '../data/catalog';
-import { useExercises, useProfile, useSessions } from '../db/hooks';
-import type { DayKey } from '../db/types';
+import { useExercises, useProfile, useSessions, useSwims } from '../db/hooks';
 import { WeeksBar } from '../components/MiniChart';
 import { Badge, Card, Empty, Page, Segmented, Stat } from '../components/ui';
-import { fmtDate, fmtDuration, fmtShort } from '../lib/dates';
-import { bestStreak, completed, entryBest, sessionSetsDone, sessionVolume, streak, weeklyCounts } from '../lib/stats';
+import { fmtDate, fmtDuration } from '../lib/dates';
+import { bestStreak, completed, entryBest, sessionVolume, streak, weeklyCounts } from '../lib/stats';
 
 type Tab = 'historial' | 'exercicis' | 'constancia';
 
@@ -15,9 +14,9 @@ export function ProgressPage() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get('t') as Tab) ?? 'historial';
   return (
-    <Page title="Progrés" action={<Link to="/resum" className="rounded-xl bg-surface-2 px-3 py-2 text-sm font-semibold">📊 Resum mensual</Link>}>
+    <Page title="Progrés" action={<Link to="/resum" aria-label="Resum mensual" className="glass flex h-10 w-10 items-center justify-center rounded-full"><BarChart3 size={18} /></Link>}>
       <Segmented value={tab} onChange={(t) => setParams({ t }, { replace: true })}
-        options={[{ value: 'historial', label: 'Historial' }, { value: 'exercicis', label: 'Exercicis' }, { value: 'constancia', label: 'Constància' }]} />
+        options={[{ value: 'historial', label: 'Sessions' }, { value: 'exercicis', label: 'Exercicis' }, { value: 'constancia', label: 'Constància' }]} />
       {tab === 'historial' && <History />}
       {tab === 'exercicis' && <ExerciseList />}
       {tab === 'constancia' && <Consistency />}
@@ -27,12 +26,10 @@ export function ProgressPage() {
 
 function History() {
   const sessions = useSessions();
-  const [day, setDay] = useState<DayKey | 'tots'>('tots');
   if (!sessions) return null;
-  const list = completed(sessions).filter((s) => day === 'tots' || s.dayKey === day);
+  const list = completed(sessions);
   return (
     <>
-      <Segmented size="sm" value={day} onChange={setDay} options={[{ value: 'tots', label: 'Tots' }, ...[...new Set(completed(sessions).map((s) => s.dayKey))].sort().map((k) => ({ value: k, label: k === 'H' ? 'Hotel' : k }))]} />
       {list.length === 0 ? <Card><Empty>Encara no hi ha entrenaments acabats.</Empty></Card> : (
         <ul className="space-y-2">
           {list.map((s) => (
@@ -47,7 +44,7 @@ function History() {
                     
                   </div>
                   <div className="truncate text-xs text-muted">
-                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {sessionSetsDone(s)} sèries · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg{s.cardio?.done ? ` · cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}
+                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg
                   </div>
                   
                 </div>
@@ -79,14 +76,14 @@ function ExerciseList() {
   return (
     <Card>
       <ul className="divide-y divide-line">
-        {rows.map(({ e, count, last, maxW }) => (
+        {rows.map(({ e, maxW }) => (
           <li key={e.id}>
             <Link to={`/progres/exercici/${e.id}`} className="flex items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{e.name}</div>
-                <div className="text-xs text-muted">{MUSCLE_LABEL[e.muscleGroup]} · {count} sessions · últim {fmtShort(last.slice(0, 10))}</div>
+                <div className="text-xs text-muted">{MUSCLE_LABEL[e.muscleGroup]}</div>
               </div>
-              <span className="tabular text-sm font-semibold">{maxW.toLocaleString('ca-ES')} kg</span>
+              {maxW > 0 && <span className="tabular text-sm">{maxW.toLocaleString('ca-ES')} kg</span>}
               <ChevronRight size={18} className="text-muted" />
             </Link>
           </li>
@@ -98,35 +95,20 @@ function ExerciseList() {
 
 function Consistency() {
   const sessions = useSessions();
+  const swims = useSwims();
   const profile = useProfile();
-  if (!sessions || !profile) return null;
+  if (!sessions || !profile || !swims) return null;
   const target = profile.sessionsPerWeek;
-  const weeks = weeklyCounts(sessions);
-  const full = weeks.filter((w) => w.count >= target).length;
-  const past = weeks.slice(0, -1);
-  const avg = past.length ? past.reduce((t, w) => t + w.count, 0) / past.length : weeks[0]?.count ?? 0;
-  const last12 = weeks.slice(-12);
+  const weeks = weeklyCounts(sessions, undefined, swims.map((s) => s.date));
+  const now = weeks[weeks.length - 1]?.count ?? 0;
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
-        <Stat label="Aquesta setmana" value={`${weeks[weeks.length - 1]?.count ?? 0}/${target}`} tone={(weeks[weeks.length - 1]?.count ?? 0) >= target ? 'accent' : undefined} />
-        <Stat label="Ratxa actual" value={`${streak(weeks, target)} setm.`} sub={`millor: ${bestStreak(weeks, target)}`} />
-        <Stat label="Setmanes completes" value={`${full}/${weeks.length}`} />
-        <Stat label="Mitjana setmanal" value={avg.toLocaleString('ca-ES', { maximumFractionDigits: 1 })} sub="setmanes acabades" />
+        <Stat label="Aquesta setmana" value={`${now}/${target}`} tone={now >= target ? 'accent' : undefined} />
+        <Stat label="Ratxa" value={`${streak(weeks, target)} setm.`} sub={`millor ${bestStreak(weeks, target)}`} />
       </div>
-      <Card title="Entrenaments per setmana (últimes 12)">
-        <WeeksBar data={last12} target={target} />
-      </Card>
-      <Card title="Setmanes">
-        <div className="grid grid-cols-6 gap-1.5">
-          {weeks.slice(-36).map((w) => (
-            <div key={w.week} title={w.week}
-              className={`flex h-10 flex-col items-center justify-center rounded-lg text-[10px] ${w.count >= target ? 'bg-accent text-accent-ink' : w.count > 0 ? 'bg-accent/30' : 'bg-surface-2 text-muted'}`}>
-              <span className="font-bold">{w.count}</span>
-              <span>{fmtDate(w.week, 'd/M')}</span>
-            </div>
-          ))}
-        </div>
+      <Card>
+        <WeeksBar data={weeks.slice(-12)} target={target} />
       </Card>
     </>
   );

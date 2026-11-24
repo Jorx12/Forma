@@ -21,7 +21,8 @@ import { summarizeEntry } from '../lib/stats';
 import { ExercisePicker } from './RoutinePage';
 
 const SUGGESTION_TONE = { pujar: 'accent', mantenir: 'info', repetir: 'info', baixar: 'warn', descarrega: 'warn', primera: 'muted' } as const;
-const SUGGESTION_LABEL = { pujar: '↑ Puja pes', mantenir: '→ Mateix pes', repetir: '↻ Repeteix', baixar: '↓ Baixa pes', descarrega: 'Descàrrega', primera: 'Primera vegada' } as const;
+const SUGGESTION_ARROW = { pujar: '↑', mantenir: '→', repetir: '↻', baixar: '↓', descarrega: '↓', primera: '·' } as const;
+const TONE_TEXT = { accent: 'text-accent', info: 'text-info', warn: 'text-warn', muted: 'text-muted' } as const;
 const EFFORTS: { value: Effort; label: string }[] = [{ value: 'facil', label: 'Fàcil' }, { value: 'correcte', label: 'Correcte' }, { value: 'dur', label: 'Dur' }];
 
 export function SessionPage() {
@@ -118,10 +119,9 @@ function SessionView({ session, sessions, exercises, profile, routine, onExit }:
       </header>
 
       <div className="space-y-3">
-        {session.flags.adaptation && <Notice tone="info">Adaptació: deixa ~3 repeticions de marge (RIR 3) a cada sèrie.</Notice>}
-        {session.comeback && <Notice tone="info">Tornada després del viatge: encara que siguin 30 minuts, ja compta.</Notice>}
-        {circuit && <Notice tone="info">Circuit: fes un exercici rere l'altre i repeteix {Math.max(...session.entries.map((e) => e.sets.length))} voltes. En marcar cada exercici, passa al següent.</Notice>}
-        {session.flags.deload && <Notice tone="warn">Sessió de descàrrega: menys sèries i pes més baix. Sense apurar.</Notice>}
+        {session.flags.adaptation && <Notice tone="info">Deixa 3 repeticions de marge.</Notice>}
+        {circuit && <Notice tone="info">{Math.max(...session.entries.map((e) => e.sets.length))} voltes: un exercici rere l'altre.</Notice>}
+        {session.flags.deload && <Notice tone="warn">Descàrrega: sense apurar.</Notice>}
 
         <Checklist title={`Escalfament${session.warmupMin ? ` · ${session.warmupMin} min` : ''}`} items={WARMUP} checked={session.checklist.warmup} defaultOpen={false}
           onToggle={(id) => save((s) => { s.checklist.warmup = toggle(s.checklist.warmup, id); })} />
@@ -249,7 +249,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
         </span>
         <div className="min-w-0 flex-1">
           <div className="font-semibold leading-tight">{exercise?.name ?? 'Exercici'}</div>
-          <div className="text-xs text-muted">{entry.target.sets}×{entry.target.repMin === entry.target.repMax ? entry.target.repMin : `${entry.target.repMin}–${entry.target.repMax}`}{unit} · descans {entry.target.restSec} s</div>
+          <div className="text-xs text-muted">{entry.target.sets}×{entry.target.repMin === entry.target.repMax ? entry.target.repMin : `${entry.target.repMin}–${entry.target.repMax}`}{unit}</div>
         </div>
         {open ? <ChevronUp size={20} className="text-muted" /> : <ChevronDown size={20} className="text-muted" />}
       </button>
@@ -265,11 +265,10 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
           )}
           {exercise?.footImpact === 'alt' && <Notice tone="warn">Impacte alt al peu: vigila la fascitis o canvia de màquina.</Notice>}
           <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">
-            <span className="text-muted">Última vegada: </span><strong>{last ? summarizeEntry(last, { seconds: secs }) : '—'}</strong>
+            <span className="text-muted">Última: </span><span className="font-medium">{last ? summarizeEntry(last, { seconds: secs }) : '—'}</span>
             {entry.suggestion && (
-              <div className="mt-1.5 flex items-start gap-2">
-                <Badge tone={SUGGESTION_TONE[entry.suggestion.kind]}>{entry.suggestion.kind === 'pujar' && exercise?.bodyweight && !entry.target.weightKg ? '↑ Més difícil' : SUGGESTION_LABEL[entry.suggestion.kind]}</Badge>
-                <span className="text-xs text-muted">{entry.suggestion.reason}</span>
+              <div className={clsx('mt-1 text-xs', TONE_TEXT[SUGGESTION_TONE[entry.suggestion.kind]])}>
+                {SUGGESTION_ARROW[entry.suggestion.kind]} {entry.suggestion.reason}
               </div>
             )}
           </div>
@@ -277,15 +276,15 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
           <ul className="space-y-2">
             {entry.sets.map((s, si) => si === active ? (
               <li key={si} className="rounded-2xl bg-surface-2 p-4">
-                <div className="mb-2 text-sm font-semibold">Sèrie {si + 1}{s.done && <span className="ml-2 text-xs text-accent">feta · editant</span>}</div>
+                <div className="mb-2 text-xs text-muted">Sèrie {si + 1}</div>
                 <div className="space-y-2">
                   {showWeight(s.weightKg) ? (
-                    <Stepper label="Pes" value={s.weightKg} step={step} digits={2} unit="kg" max={500}
+                    <Stepper value={s.weightKg} step={step} digits={2} unit="kg" max={500}
                       onChange={(v) => onChange((e) => { e.sets[si].weightKg = v; })} />
                   ) : (
-                    <button className="text-xs text-muted underline" onClick={() => onChange((e) => { e.sets[si].weightKg = step; })}>Pes corporal · afegir pes</button>
+                    <button className="text-xs text-muted" onClick={() => onChange((e) => { e.sets[si].weightKg = step; })}>+ pes</button>
                   )}
-                  <Stepper label={secs ? 'Segons' : 'Repeticions'} value={s.reps} step={secs ? 5 : 1} max={secs ? 600 : 100} unit={secs ? 's' : undefined}
+                  <Stepper value={s.reps} step={secs ? 5 : 1} max={secs ? 600 : 100} unit={secs ? 's' : 'reps'}
                     onChange={(v) => onChange((e) => { e.sets[si].reps = v; })} />
                 </div>
                 {s.done ? (
@@ -320,7 +319,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => onChange((e) => { const l = e.sets[e.sets.length - 1]; e.sets.push({ weightKg: l?.weightKg ?? 0, reps: l?.reps ?? e.target.repMin, done: false }); })}><Plus size={16} /> Sèrie</Button>
             <Button size="sm" disabled={!entry.sets.length || entry.sets[entry.sets.length - 1].done} onClick={() => onChange((e) => { e.sets.pop(); })}><Minus size={16} /> Sèrie</Button>
-            <Button size="sm" onClick={onSwap}><Replace size={16} /> Canviar màquina</Button>
+            <Button size="sm" aria-label="Canviar màquina" onClick={onSwap}><Replace size={16} /></Button>
             <Button size="sm" variant="ghost" onClick={onRemove}><Trash2 size={16} /></Button>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { analyzeWeight } from '../lib/weight';
 
 const GROUPS = [
   { title: 'Seguiment', items: [
-    { to: '/revisio', icon: ClipboardCheck, label: 'Revisió setmanal' },
+    { to: '/revisio', icon: ClipboardCheck, label: 'Revisió' },
     { to: '/resum', icon: BarChart3, label: 'Resum mensual' },
   ] },
   { title: 'Pla', items: [
@@ -18,10 +18,10 @@ const GROUPS = [
   ] },
   { title: 'Configuració', items: [
     { to: '/mes/perfil', icon: User, label: 'Perfil' },
-    { to: '/mes/calories', icon: Flame, label: 'Referència calòrica' },
-    { to: '/mes/dreceres', icon: Zap, label: "Dreceres de l'iPhone" },
-    { to: '/mes/dades', icon: Database, label: 'Dades i còpies' },
-    { to: '/mes/installar', icon: Smartphone, label: "Instal·lar l'app" },
+    { to: '/mes/calories', icon: Flame, label: 'Calories' },
+    { to: '/mes/dreceres', icon: Zap, label: 'Dreceres' },
+    { to: '/mes/dades', icon: Database, label: 'Dades' },
+    { to: '/mes/installar', icon: Smartphone, label: 'Instal·lar' },
   ] },
 ];
 
@@ -36,7 +36,6 @@ export function MorePage() {
           </div>
         </Card>
       ))}
-      <p className="pt-2 text-center text-xs text-muted">Les dades només es guarden en aquest dispositiu.</p>
     </Page>
   );
 }
@@ -60,9 +59,9 @@ function ModesCard() {
   return (
     <Card title="Modes" className="py-3">
       <div className="-mt-2 divide-y divide-line">
-        <Row icon={<span>🧳</span>} label="Viatge" sub="Sessions = rutina d'hotel"
+        <Row icon={<span>🧳</span>} label="Viatge"
           right={<Toggle on={!!m?.travel.active} onChange={(v) => setTravel(v, profile, sessions)} />} />
-        <Row icon={<span>🎄</span>} label="Nadal" sub="Objectiu: mantenir el pes"
+        <Row icon={<span>🎄</span>} label="Nadal"
           right={<Toggle on={!!m?.christmas.active} onChange={(v) => setChristmas(v, profile, current)} />} />
       </div>
     </Card>

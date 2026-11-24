@@ -44,8 +44,8 @@ export function WeightChart({ profile, weighIns, height = 260 }: { profile: Prof
   return (
     <div>
       <div className="mb-2 flex justify-end">
-        <div className="w-48">
-          <Segmented size="sm" value={range} onChange={setRange} options={[{ value: 'recent', label: '3 mesos' }, { value: 'tot', label: 'Tot el pla' }]} />
+        <div className="w-28">
+          <Segmented size="sm" value={range} onChange={setRange} options={[{ value: 'recent', label: '3 m' }, { value: 'tot', label: 'Tot' }]} />
         </div>
       </div>
       <div style={{ height }} className="-ml-3">
@@ -55,26 +55,21 @@ export function WeightChart({ profile, weighIns, height = 260 }: { profile: Prof
             <XAxis type="number" dataKey="x" domain={domain} ticks={ticks} allowDataOverflow
               tickFormatter={(v) => fmtDate(fromDayNum(v), range === 'tot' ? 'MMM yy' : 'd MMM')} stroke="var(--muted)" fontSize={11} tickLine={false} />
             <YAxis type="number" dataKey="y" domain={yDomain} allowDataOverflow stroke="var(--muted)" fontSize={11} width={38} tickLine={false} />
-            <Area data={band} dataKey="range" type="linear" stroke="none" fill="var(--accent)" fillOpacity={0.12} isAnimationActive={false} name="Rang objectiu" />
+            <Area data={band} dataKey="range" type="linear" stroke="none" fill="var(--accent)" fillOpacity={0.12} isAnimationActive={false} name="Rang objectiu" tooltipType="none" />
             {marks.map((m) => (
               <ReferenceLine key={m.label} x={m.day} stroke="var(--accent)" strokeOpacity={0.25} ifOverflow="hidden"
                 label={{ value: m.kgMin === m.kgMax ? `${fmtNum(m.kg)}` : `${m.kgMin}–${m.kgMax}`, position: 'insideTop', fill: 'var(--accent)', fontSize: 10 }} />
             ))}
             <ReferenceLine x={today} stroke="var(--muted)" strokeOpacity={0.4} ifOverflow="hidden" />
-            <Line data={line} dataKey="y" type="linear" stroke="var(--accent)" strokeOpacity={0.7} strokeDasharray="6 4" dot={false} isAnimationActive={false} name="Objectiu" />
-            <Scatter data={points} dataKey="y" fill="var(--muted)" fillOpacity={0.6} isAnimationActive={false} name="Pesada" />
-            <Line data={weekly} dataKey="y" type="monotone" stroke="var(--info)" strokeWidth={2.5} dot={{ r: 3.5, fill: 'var(--info)' }} isAnimationActive={false} name="Mitjana setmanal" />
+            <Line data={line} dataKey="y" type="linear" stroke="var(--accent)" strokeOpacity={0.7} strokeDasharray="6 4" dot={false} isAnimationActive={false} name="Pla" />
+            <Scatter data={points} dataKey="y" fill="var(--muted)" fillOpacity={0.6} isAnimationActive={false} name="Pesada" tooltipType="none" />
+            <Line data={weekly} dataKey="y" type="monotone" stroke="var(--info)" strokeWidth={2.5} dot={{ r: 3.5, fill: 'var(--info)' }} isAnimationActive={false} name="Mitjana" />
             <Tooltip cursor={{ stroke: 'var(--line)' }}
               contentStyle={{ background: 'var(--surface-solid)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text)' }}
               labelFormatter={(v) => fmtDate(fromDayNum(Number(v)))}
               formatter={(v, name) => [Array.isArray(v) ? `${fmtNum(Number(v[0]))}–${fmtNum(Number(v[1]))} kg` : `${fmtNum(Number(v))} kg`, String(name)]} />
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1.5"><span className="h-1 w-4 rounded bg-info" /> Mitjana setmanal</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted" /> Pesades</span>
-        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 border-t-2 border-dashed border-accent" /> Fites del pla</span>
       </div>
     </div>
   );

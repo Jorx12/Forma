@@ -47,7 +47,7 @@ export function RestTimer() {
       {!finished && <div className="h-1 bg-accent/80 transition-all" style={{ width: `${pct}%` }} />}
       <div className="flex items-center gap-2 px-4 py-3">
         <div className="flex-1">
-          <div className={clsx('text-xs', finished ? 'font-semibold' : 'text-muted')}>{finished ? 'Descans acabat! Següent sèrie 💪' : `Descans${t.label ? ` · ${t.label}` : ''}`}</div>
+          <div className={clsx('text-xs', finished ? 'font-semibold' : 'text-muted')}>{finished ? 'Següent sèrie' : 'Descans'}</div>
           <div className="tabular text-3xl font-bold">{finished ? '0:00' : fmtClock(left)}</div>
         </div>
         {!finished && (

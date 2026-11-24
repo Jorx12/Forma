@@ -68,13 +68,15 @@ export function sessionPRs(session: Session, previous: Session[]): PR[] {
 export interface WeekCount { week: string; count: number }
 
 /** Entrenaments per setmana (dilluns) des de la primera fins a l'actual */
-export function weeklyCounts(sessions: Session[], from?: string): WeekCount[] {
+/** Sessions per setmana (força, hotel i, si es passen, natació) */
+export function weeklyCounts(sessions: Session[], from?: string, swimDates: string[] = []): WeekCount[] {
   const done = completed(sessions);
   const thisWeek = weekStartISO(toISODate());
-  const first = from ? weekStartISO(from) : done.length ? weekStartISO(done.map((s) => s.startedAt).sort()[0].slice(0, 10)) : thisWeek;
+  const dates = [...done.map((s) => s.startedAt.slice(0, 10)), ...swimDates].sort();
+  const first = from ? weekStartISO(from) : dates.length ? weekStartISO(dates[0]) : thisWeek;
   const map = new Map<string, number>();
-  for (const s of done) {
-    const w = weekStartISO(s.startedAt.slice(0, 10));
+  for (const d of dates) {
+    const w = weekStartISO(d);
     map.set(w, (map.get(w) ?? 0) + 1);
   }
   const out: WeekCount[] = [];

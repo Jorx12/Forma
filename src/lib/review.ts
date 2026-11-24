@@ -43,21 +43,21 @@ export function reviewAlerts(week: string, profile: Profile, weighIns: WeighIn[]
 
   if (s0.change != null) {
     const loss = -s0.change;
-    if (loss > 1) out.push({ id: 'massa', tone: 'warn', text: `Has baixat ${fmt(loss)} kg aquesta setmana (més d'1 kg). Menja una mica més: una mica més de proteïna o d'hidrats als àpats.` });
-    else if (loss >= 0.3 && loss <= 0.5) out.push({ id: 'be', tone: 'ok', text: `Has baixat ${fmt(loss)} kg. Vas bé, no canviïs res.` });
-    else if (loss > 0.5) out.push({ id: 'rapid', tone: 'info', text: `Has baixat ${fmt(loss)} kg: bon ritme. Si passa d'1 kg per setmana, menja una mica més.` });
-    else if (xmas) out.push({ id: 'nadal', tone: 'info', text: `Mode Nadal: l'objectiu és mantenir el pes (${s0.change > 0 ? '+' : ''}${fmt(s0.change)} kg).` });
+    if (loss > 1) out.push({ id: 'massa', tone: 'warn', text: `−${fmt(loss)} kg: més d'1 kg. Menja una mica més.` });
+    else if (loss >= 0.3 && loss <= 0.5) out.push({ id: 'be', tone: 'ok', text: `−${fmt(loss)} kg. Vas bé, no canviïs res.` });
+    else if (loss > 0.5) out.push({ id: 'rapid', tone: 'info', text: `−${fmt(loss)} kg. Bon ritme.` });
+    else if (xmas) out.push({ id: 'nadal', tone: 'info', text: `Nadal: mantenir (${s0.change > 0 ? '+' : '−'}${fmt(s0.change)} kg).` });
   }
 
   // 2 setmanes seguides sense baixar pes ni cintura (no s'avisa en mode Nadal)
   if (!xmas && s0.change != null && s1.change != null && s0.change >= 0 && s1.change >= 0) {
     const w0 = s0.waistCm, w2 = waistFor(addDaysISO(week, -14), measures);
     const waistDown = w0 != null && w2 != null && w0 < w2;
-    if (!waistDown) out.push({ id: 'estancat', tone: 'warn', text: 'Portes 2 setmanes sense baixar pes ni cintura. Prova de treure un dia d\'alcohol o un picoteig, i afegeix 10 min de cardio.' });
+    if (!waistDown) out.push({ id: 'estancat', tone: 'warn', text: '2 setmanes sense baixar. Treu un dia d\'alcohol o un picoteig i afegeix 10\' de cardio.' });
   }
 
   const idle = daysSinceTraining(sessions, swims, today);
-  if (idle !== null && idle >= 7) out.push({ id: 'inactiu', tone: 'danger', text: 'Mai dues setmanes seguides sense entrenar. Encara que sigui la rutina d\'hotel: 20 minuts i fet.', action: 'hotel' });
+  if (idle !== null && idle >= 7) out.push({ id: 'inactiu', tone: 'danger', text: 'Mai dues setmanes seguides sense entrenar.', action: 'hotel' });
   return out;
 }
 

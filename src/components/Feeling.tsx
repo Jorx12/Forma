@@ -15,8 +15,9 @@ export function FeelingPicker({ value, onChange }: { value?: Feeling; onChange: 
     <div className="grid grid-cols-4 gap-1.5">
       {FEELINGS.map((f) => (
         <button key={f.value} type="button" onClick={() => onChange(value === f.value ? undefined : f.value)}
-          className={clsx('flex h-14 flex-col items-center justify-center rounded-xl text-xs', value === f.value ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted')}>
-          <span className="text-xl leading-none">{f.emoji}</span>{f.label}
+          aria-label={f.label}
+          className={clsx('flex h-12 items-center justify-center rounded-2xl border text-2xl transition', value === f.value ? 'border-accent/50 bg-accent/15' : 'border-line bg-surface-2 opacity-60')}>
+          {f.emoji}
         </button>
       ))}
     </div>

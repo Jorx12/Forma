@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCw, Replace, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, RefreshCw, Replace, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { MUSCLE_LABEL, PATTERN_LABEL, PATTERN_SHORT, WARMUP } from '../data/catalog';
 import { db, uid } from '../db/db';
@@ -6,7 +6,7 @@ import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
 import { Button, Card, Disclosure, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
-import { CARDIO_ALLOWED, CARDIO_MACHINES, CARDIO_WARNING, HIIT_PROTOCOLS } from '../data/cardio';
+import { CARDIO_ALLOWED, CARDIO_MACHINES, HIIT_PROTOCOLS } from '../data/cardio';
 import { dayLabel, personalRoutine } from '../data/plan';
 import { durationLabel, type SessionPlan, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
 import { defaultItem, generateRoutine, newRoutine, scoreExercise, usable } from '../lib/generator';
@@ -61,10 +61,10 @@ export function RoutinePage() {
   const dayItems = (r: Routine, k: DayKey) => r.days.find((d) => d.key === k)!.items;
 
   return (
-    <Page title="Rutines" back="/mes" action={<Button size="sm" onClick={regenerate}><RefreshCw size={16} /> {routine ? 'Automàtica' : 'Generar'}</Button>}>
+    <Page title="Rutines" back="/mes" action={<button aria-label="Generar rutina automàtica" onClick={regenerate} className="glass flex h-10 w-10 items-center justify-center rounded-full"><RefreshCw size={17} /></button>}>
       {warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
       {routine && !routine.template && (
-        <Notice tone="info">Ara fas servir una rutina generada automàticament. <button className="font-semibold underline" onClick={restorePlan}>Restaurar el pla personal</button></Notice>
+        <Notice tone="info">Rutina automàtica. <button className="font-semibold text-accent" onClick={restorePlan}>Tornar al pla</button></Notice>
       )}
       {!routine ? (
         <Card>
@@ -75,7 +75,7 @@ export function RoutinePage() {
         </Card>
       ) : (
         <>
-          <Card title="Durada habitual">
+          <Card>
             <Stepper value={mins} step={5} min={MIN_MINUTES} max={MAX_MINUTES} unit="min"
               onChange={(v) => db.profile.update('me', { sessionMinutes: v })} />
             <StructureSummary profile={profile} plan={planSession(routine.days[0]?.items ?? [], mins, byId, profile, planOpts(routine.days[0]))} />
@@ -93,18 +93,16 @@ export function RoutinePage() {
                   return (
                     <li key={`${it.exerciseId}-${i}`} className={fitted ? '' : 'opacity-45'}>
                       <button className="flex w-full items-center gap-3 py-3 text-left active:opacity-70" onClick={() => setSheet({ kind: 'edit', day: d.key, idx: i })}>
-                        <span className="w-4 text-xs text-muted">{i + 1}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px] font-medium">{e?.name ?? 'Exercici esborrat'}{e?.footImpact === 'alt' && ' ⚠️'}</span>
-                          <span className="block text-xs text-muted">{fitted ? `${fitted.sets} × ${r} · ${fitted.restSec} s` : `Dies llargs · ${it.sets} × ${r}`}{it.altIds?.length ? ` · o ${it.altIds.map((id) => byId.get(id)?.name ?? id).join(', ')}` : ''}</span>
+                          <span className="block text-xs text-muted">{fitted ? fitted.sets : it.sets} × {r}</span>
                         </span>
-                        <Pencil size={15} className="text-muted" />
                       </button>
                     </li>
                   );
                 })}
               </ol>
-              <button className="mt-1 flex items-center gap-1.5 text-sm font-medium text-muted" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir exercici</button>
+              <button className="mt-1 flex items-center gap-1.5 text-sm font-medium text-muted" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir</button>
             </Card>
           ); })}
           <CardioSettings profile={profile} />
@@ -236,7 +234,7 @@ function CardioSettings({ profile }: { profile: Profile }) {
   const c = profile.cardio ?? { enabled: true, machine: 'bici' as const, protocolId: 'continu' };
   const set = (patch: Partial<typeof c>) => db.profile.update('me', { cardio: { ...c, ...patch } });
   return (
-    <Card title="Cardio després de la força" right={
+    <Card title="Cardio" right={
       <button role="switch" aria-checked={c.enabled} onClick={() => set({ enabled: !c.enabled })}
         className={`relative h-7 w-12 rounded-full border border-line transition ${c.enabled ? 'bg-accent' : 'bg-surface-2'}`}>
         <span className={`absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow transition-all ${c.enabled ? 'left-[22px]' : 'left-0.5'}`} />
@@ -248,9 +246,9 @@ function CardioSettings({ profile }: { profile: Profile }) {
           <select className="h-11 w-full rounded-2xl border border-line bg-surface-2 px-4 text-sm" value={c.protocolId} onChange={(e) => set({ protocolId: e.target.value })}>
             {HIIT_PROTOCOLS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
-          <p className="text-xs text-muted">10' les 4 primeres setmanes, després 15–20'. {CARDIO_WARNING.split('.')[0]}.</p>
+          <p className="text-xs text-muted">Sense cinta ni salts.</p>
         </div>
-      ) : <p className="text-sm text-muted">Desactivat per defecte.</p>}
+      ) : null}
     </Card>
   );
 }

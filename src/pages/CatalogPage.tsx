@@ -22,16 +22,15 @@ export function CatalogPage() {
   }, [exercises, q, onlyMine]);
 
   if (!exercises) return null;
-  const count = exercises.filter((e) => e.available).length;
 
   return (
-    <Page title="Màquines" back="/mes" action={<Button size="sm" variant="primary" onClick={() => setEdit('new')}><Plus size={16} /> Nova</Button>}>
+    <Page title="Màquines" back="/mes" action={<button aria-label="Nova màquina" onClick={() => setEdit('new')} className="glass flex h-10 w-10 items-center justify-center rounded-full"><Plus size={18} /></button>}>
       <div className="relative">
         <Search size={18} className="absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-        <input className={`${inputCls} pl-10`} placeholder="Cercar…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className={`${inputCls} pl-10`} placeholder="Cercar" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <Segmented value={onlyMine ? 'mine' : 'all'} onChange={(v) => setOnlyMine(v === 'mine')}
-        options={[{ value: 'all', label: `Totes (${exercises.length})` }, { value: 'mine', label: `Les tinc (${count})` }]} />
+        options={[{ value: 'mine', label: 'Les tinc' }, { value: 'all', label: 'Totes' }]} />
 
       {groups.map(({ g, items }) => (
         <Card key={g} title={MUSCLE_LABEL[g]}>
@@ -57,7 +56,7 @@ function ExerciseRow({ e, onOpen }: { e: Exercise; onOpen: () => void }) {
         className={clsx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm', e.available ? 'border-accent bg-accent text-accent-ink' : 'border-line text-transparent')}>✓</button>
       <button className="min-w-0 flex-1 text-left" onClick={onOpen}>
         <div className={clsx('truncate text-[15px] font-medium', !e.available && 'text-muted')}>{e.name}</div>
-        <div className={clsx('truncate text-xs', e.footImpact === 'alt' ? 'text-warn' : 'text-muted')}>{POSITION_LABEL[e.position]} · {foot}{e.isCustom ? ' · pròpia' : ''}{e.note ? ` · ${e.note}` : ''}</div>
+        {(e.footImpact !== 'baix' || e.note) && <div className={clsx('truncate text-xs', e.footImpact === 'alt' ? 'text-warn' : 'text-muted')}>{e.footImpact !== 'baix' ? foot : ''}{e.footImpact !== 'baix' && e.note ? ' · ' : ''}{e.note ?? ''}</div>}
       </button>
       <button aria-label="M'agrada" onClick={() => setPref('like')}
         className={clsx('flex h-9 w-9 items-center justify-center rounded-full', e.preference === 'like' ? 'bg-accent/15 text-accent' : 'text-muted/60')}><ThumbsUp size={16} /></button>

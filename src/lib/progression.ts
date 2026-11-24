@@ -46,9 +46,7 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   if (!hist.length) {
     return {
       kind: 'primera', weightKg: 0, reps: fill(exercise?.bodyweight ? item.repMin : item.repMax),
-      reason: exercise?.bodyweight
-        ? `Primera vegada: comença per ${item.repMin}${exercise.measure === 'seconds' ? ' s' : ' repeticions'} amb bona tècnica.`
-        : `Primera vegada: tria un pes amb què puguis fer ${item.repMax} repeticions deixant-ne 2–3 de marge.`,
+      reason: 'Primera vegada: tria un pes còmode.',
     };
   }
   const last = hist[0].entry;
@@ -60,21 +58,20 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   if (deload) {
     return {
       kind: 'descarrega', weightKg: roundTo(lastW * 0.9, inc), reps: fill(item.repMin), lastSummary,
-      reason: `Setmana de descàrrega: ${sets} sèries amb un ~10 % menys de pes i sense apurar.`,
+      reason: `${sets} sèries, −10 %.`,
     };
   }
   const noWeight = !!exercise?.bodyweight && lastW === 0;
-  const unit = exercise?.measure === 'seconds' ? 's' : 'reps';
   if (hitTop(lastAdj) && noWeight) {
     return {
       kind: 'pujar', weightKg: 0, reps: fill(item.repMax), lastSummary,
-      reason: `Vas arribar a ${item.repMax} ${unit} a totes les sèries. Fes-ho una mica més difícil: més lent, una variant més dura o afegeix pes.`,
+      reason: 'Fes-ho una mica més difícil.',
     };
   }
   if (hitTop(lastAdj)) {
     return {
       kind: 'pujar', weightKg: lastW + inc, reps: fill(item.repMin), lastSummary,
-      reason: `Vas fer totes les sèries a ${item.repMax} reps. Puja ${inc.toLocaleString('ca-ES')} kg i torna a ${item.repMin} reps.`,
+      reason: `+${inc.toLocaleString('ca-ES')} kg i torna a ${item.repMin} reps.`,
     };
   }
   if (missedMin(lastAdj)) {
@@ -84,12 +81,12 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
       const lower = roundTo(lastW * 0.92, inc);
       return {
         kind: 'baixar', weightKg: lower < lastW ? lower : Math.max(0, lastW - inc), altWeightKg: lastW, reps: fill(item.repMin), lastSummary,
-        reason: `Dues sessions seguides sense arribar a ${item.repMin} reps. Baixa lleugerament el pes (o mantén ${lastW.toLocaleString('ca-ES')} kg si et trobes bé).`,
+        reason: 'Dues sessions sota el mínim: baixa una mica.',
       };
     }
     return {
       kind: 'repetir', weightKg: lastW, reps: fill(item.repMin), lastSummary,
-      reason: `L'últim dia no vas arribar a ${item.repMin} reps en totes les sèries. Mantén el pes i torna-ho a provar.`,
+      reason: 'Mateix pes, torna-ho a provar.',
     };
   }
   // Dins del rang: mateix pes, intenta sumar una repetició a cada sèrie
@@ -97,7 +94,7 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   const reps = Array.from({ length: sets }, (_, i) => Math.min(item.repMax, (lastReps[i] ?? lastReps[lastReps.length - 1] ?? item.repMin) + 1));
   return {
     kind: 'mantenir', weightKg: lastW, reps, lastSummary,
-    reason: `Mateix pes. Intenta sumar una repetició per sèrie fins arribar a ${item.repMax}.`,
+    reason: `Suma una rep per sèrie (fins a ${item.repMax}).`,
   };
 }
 

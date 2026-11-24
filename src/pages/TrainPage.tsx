@@ -1,14 +1,13 @@
-import { Clock, Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useActiveRoutine, useExercises, useMeta, useProfile, useSchedule, useSessions } from '../db/hooks';
 import type { DayKey } from '../db/types';
 import { Badge, Button, Card, Notice, Page, Segmented, Stepper } from '../components/ui';
-import { durationLabel, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
-import { CARDIO_WARNING, isContinuous, machineLabel, protocolById } from '../data/cardio';
+import { MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
 import { dayLabel } from '../data/plan';
 import { planFor } from '../lib/schedule';
-import { fmtDate, todayISO } from '../lib/dates';
+import { todayISO } from '../lib/dates';
 import { deloadDue, isAdaptation, nextDayKey } from '../lib/progression';
 import { startSession } from '../lib/session';
 import { unlockAudio } from '../lib/alerts';
@@ -42,7 +41,6 @@ export function TrainPage() {
   const deloadOn = deload ?? (dl.due && !routine?.fixed);
   const adaptation = isAdaptation(profile, sessions);
   const byId = new Map(exercises.map((e) => [e.id, e]));
-  const lastDone = sessions.find((s) => s.status === 'feta');
 
   if (active) {
     return (
@@ -88,8 +86,7 @@ export function TrainPage() {
       )}
       {comeback && <Notice tone="info">Tornada: encara que siguin 30 minuts.</Notice>}
       <Card>
-        <Segmented value={chosen} onChange={(v) => setDay(v)} options={keys.map((k) => ({ value: k, label: <span>{k === 'H' ? 'Hotel' : `Força ${k}`}{k === proposed && ' ·'}</span> }))} />
-        {lastDone && <p className="mt-2 text-xs text-muted">Última: {dayLabel(lastDone.dayKey, routine.days)}, {fmtDate(lastDone.startedAt.slice(0, 10), 'EEE d MMM')}</p>}
+        <Segmented value={chosen} onChange={(v) => setDay(v)} options={keys.map((k) => ({ value: k, label: k === 'H' ? 'Hotel' : `Força ${k}` }))} />
       </Card>
       {circuit ? (
         <Card title={`${dayLabel(chosen, routine.days)} · ≈${plan.totalMin} min`}>
@@ -97,14 +94,14 @@ export function TrainPage() {
           <ol className="space-y-1.5">
             {all.map((it, i) => (
               <li key={i} className="flex justify-between gap-2 text-sm">
-                <span>{i + 1}. {byId.get(it.exerciseId)?.name ?? '—'}</span>
+                <span>{byId.get(it.exerciseId)?.name ?? '—'}</span>
                 <span className="shrink-0 text-muted">{it.repMin}{byId.get(it.exerciseId)?.measure === 'seconds' ? ' s' : ''}</span>
               </li>
             ))}
           </ol>
         </Card>
       ) : (
-      <Card title="Temps disponible">
+      <Card>
         <Stepper value={mins} onChange={setMinutes} step={5} min={comeback ? 30 : MIN_MINUTES} max={MAX_MINUTES} unit="min" />
         <div className="mt-2 flex flex-wrap gap-1.5">
           {(comeback ? [30, 45, 60, 75] : [40, 60, 70, 75, 90]).map((m) => (
@@ -114,21 +111,18 @@ export function TrainPage() {
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{plan.warmupMin}'</div><div className="text-[11px] text-muted">Escalfament</div></div>
-          <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{fit.minutes}'</div><div className="text-[11px] text-muted">Força · {fit.items.length} ex.</div></div>
+          <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{fit.minutes}'</div><div className="text-[11px] text-muted">Força</div></div>
           <button onClick={() => setCardioOn(!withCardio)} className={`rounded-xl py-2 ${withCardio ? 'bg-surface-2' : 'border border-dashed border-line'}`}>
             <div className="tabular text-lg font-bold">{plan.cardio ? `${plan.cardio.plannedMin}'` : '—'}</div>
             <div className="text-[11px] text-muted">{withCardio ? 'Cardio' : 'Sense cardio'}</div>
           </button>
         </div>
-        <p className="mt-3 flex items-center gap-1.5 text-sm text-muted"><Clock size={15} />
-          <span>≈{durationLabel(plan.totalMin)}{skipped > 0 && ` · ${skipped} ex. fora`}{plan.cardio && ` · ${machineLabel(plan.cardio.machine).toLowerCase()}${isContinuous(plan.cardio) ? '' : `, ${protocolById(plan.cardio.protocolId).label}`}`}</span>
-        </p>
-        {plan.cardio && <p className="mt-1 text-xs text-warn">{CARDIO_WARNING.split('.')[0]}.</p>}
+        {skipped > 0 && <p className="mt-3 text-xs text-muted">{skipped} exercicis no hi caben</p>}
         <ol className="mt-4 space-y-2 border-t border-line pt-4">
           {fit.items.map((it, i) => (
             <li key={i} className="flex justify-between gap-2 text-sm">
-              <span>{i + 1}. {byId.get(it.exerciseId)?.name ?? '—'}</span>
-              <span className="shrink-0 text-muted">{it.sets}×{it.repMin}–{it.repMax}{byId.get(it.exerciseId)?.measure === 'seconds' ? ' s' : ''} · {it.restSec}s</span>
+              <span>{byId.get(it.exerciseId)?.name ?? '—'}</span>
+              <span className="shrink-0 text-muted">{it.sets}×{it.repMin}–{it.repMax}{byId.get(it.exerciseId)?.measure === 'seconds' ? ' s' : ''}</span>
             </li>
           ))}
         </ol>

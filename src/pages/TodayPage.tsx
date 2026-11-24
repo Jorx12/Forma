@@ -16,8 +16,7 @@ import { prevMonth } from '../lib/monthly';
 import { reviewAlerts } from '../lib/review';
 import { anyDone, daysSinceTraining, doneOn, isChristmasSeason, isPlanDone, mainSessionsInWeek, moveActivity, planFor, resetDay, setChristmas, setTravel, weekDates, weekdayOf, type DayPlan } from '../lib/schedule';
 import { fmtMeters } from '../lib/swim';
-import { analyzeWeight, statusLabel, WEIGH_DAYS } from '../lib/weight';
-import { statusTone } from './WeightPage';
+import { analyzeWeight, WEIGH_DAYS } from '../lib/weight';
 import { Badge } from '../components/ui';
 
 export const EXTRA_LABEL: Record<ExtraKind, string> = { padel: 'Pàdel', pitch: 'Pitch and putt', caminar: 'Caminar', altre: 'Altre' };
@@ -59,13 +58,13 @@ export function TodayPage() {
 
   // Pendents del dia, en una sola llista
   const pending: { key: string; to?: string; onClick?: () => void; icon: React.ReactNode; label: string; sub?: string }[] = [];
-  if (WEIGH_DAYS.includes(wd) && !weighIns.some((w) => w.date === today)) pending.push({ key: 'pes', to: '/pes', icon: <Scale size={18} />, label: 'Pesar-se', sub: 'Al matí, en dejú' });
+  if (WEIGH_DAYS.includes(wd) && !weighIns.some((w) => w.date === today)) pending.push({ key: 'pes', to: '/pes', icon: <Scale size={18} />, label: 'Pesar-se' });
   if (wd === 1 && !measures.some((m) => m.date === today && m.waistCm != null)) pending.push({ key: 'cintura', to: '/pes#cintura', icon: <Ruler size={18} />, label: 'Mesurar la cintura' });
-  if (!reviews.some((r) => r.week === prevWeek)) pending.push({ key: 'revisio', to: '/revisio', icon: <ClipboardCheck size={18} />, label: 'Revisió setmanal', sub: `Setmana del ${fmtDate(prevWeek, 'd MMM')}` });
-  if (hour >= 16.5 && hour < 18 && !logs.find((l) => l.date === today)?.snack) pending.push({ key: 'berenar', to: '/mes/alimentacio', icon: <span>🍎</span>, label: 'Berenar', sub: '17–17.30 h' });
+  if (!reviews.some((r) => r.week === prevWeek)) pending.push({ key: 'revisio', to: '/revisio', icon: <ClipboardCheck size={18} />, label: 'Revisió setmanal' });
+  if (hour >= 16.5 && hour < 18 && !logs.find((l) => l.date === today)?.snack) pending.push({ key: 'berenar', to: '/mes/alimentacio', icon: <span>🍎</span>, label: 'Berenar' });
   if (Number(today.slice(8, 10)) <= 7) pending.push({ key: 'resum', to: `/resum?mes=${prevMonth(today.slice(0, 7))}`, icon: <BarChart3 size={18} />, label: `Resum de ${fmtDate(`${prevMonth(today.slice(0, 7))}-01`, 'MMMM')}` });
-  if (!xmas && isChristmasSeason(today)) pending.push({ key: 'nadal', onClick: () => setChristmas(true, profile, a.current), icon: <Snowflake size={18} />, label: 'Activar el mode Nadal', sub: 'Objectiu: mantenir el pes' });
-  if (sinceExport !== undefined && sinceExport > 14) pending.push({ key: 'copia', to: '/mes/dades', icon: <Database size={18} />, label: 'Fer còpia de seguretat', sub: `Fa ${sinceExport} dies` });
+  if (!xmas && isChristmasSeason(today)) pending.push({ key: 'nadal', onClick: () => setChristmas(true, profile, a.current), icon: <Snowflake size={18} />, label: 'Mode Nadal' });
+  if (sinceExport !== undefined && sinceExport > 14) pending.push({ key: 'copia', to: '/mes/dades', icon: <Database size={18} />, label: 'Còpia de seguretat' });
 
   return (
     <Page title="Avui" subtitle={<span className="flex flex-wrap items-center gap-2">{fmtLong(today)}{travel && <Badge tone="info">🧳 Viatge</Badge>}{xmas && <Badge tone="info">🎄 Nadal</Badge>}</span>}>
@@ -84,8 +83,7 @@ export function TodayPage() {
         onMove={() => setSheet('move')} onExtra={() => setSheet('extra')}
         onBack={async () => { const d = await setTravel(false, profile, sessions); if (d) setSelected(d); }}>
         <div className="mt-5 border-t border-line pt-4">
-          <div className="mb-2 flex justify-between text-xs text-muted"><span>Setmana</span><span className="tabular">{weekCount}/3</span></div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-[repeat(7,1fr)_auto] items-center gap-1">
             {days.map(({ plan, done }) => {
               const ok = isPlanDone(plan, done) || (!isMainActivity(plan.activity) && anyDone(done));
               const main = isMainActivity(plan.activity);
@@ -97,6 +95,7 @@ export function TodayPage() {
                 </button>
               );
             })}
+            <span className="tabular pl-2 text-xs text-muted">{weekCount}/3</span>
           </div>
           {goal && <p className="mt-3 text-sm text-muted">🎯 {goal}</p>}
         </div>
@@ -105,15 +104,15 @@ export function TodayPage() {
       {selected <= today && <HabitsCard date={selected} log={logs.find((l) => l.date === selected)} />}
 
       {pending.length > 0 && (
-        <Card title="Pendent" className="py-2">
-          <div className="-mt-2 divide-y divide-line">
+        <Card className="py-1">
+          <div className="divide-y divide-line">
             {pending.map(({ key, ...p }) => <Row key={key} {...p} />)}
           </div>
         </Card>
       )}
 
       <Link to="/pes" className="block">
-        <Card title="Pes · mitjana setmanal" right={<Badge tone={statusTone(a.status)}>{statusLabel(a)}</Badge>}>
+        <Card>
           <div className="flex items-baseline gap-1.5">
             <span className="tabular text-[40px] leading-none font-semibold tracking-tight">{fmtNum(a.current)}</span>
             <span className="text-muted">kg</span>
@@ -123,7 +122,7 @@ export function TodayPage() {
           </div>
           {nextGoal && (
             <div className="mt-4">
-              <div className="mb-1.5 flex justify-between text-xs text-muted"><span>Cap a {nextGoal.targetKg} kg</span><span className="tabular">{nextGoal.reached ? 'Assolit' : `falten ${fmtNum(nextGoal.remainingKg)} kg`}</span></div>
+              <div className="mb-1.5 flex justify-between text-xs text-muted"><span>{nextGoal.targetKg} kg</span><span className="tabular">{nextGoal.reached ? '✓' : `−${fmtNum(nextGoal.remainingKg)}`}</span></div>
               <ProgressBar pct={nextGoal.pct} />
             </div>
           )}
@@ -160,15 +159,17 @@ function DayCard({ plan, done, isToday, activeSession, travel, onMove, onExtra, 
 
   return (
     <Card>
-      <div className="flex items-center justify-between text-xs text-muted">
-        <span>{isToday ? 'Toca avui' : fmtDate(plan.date, 'EEEE d MMM')}</span>
-        {tag && <Badge tone="info">{tag}</Badge>}
-      </div>
-      <div className="mt-3 flex items-center gap-4">
+      {(!isToday || tag) && (
+        <div className="mb-3 flex items-center justify-between text-xs text-muted">
+          <span>{isToday ? '' : fmtDate(plan.date, 'EEEE d MMM')}</span>
+          {tag && <Badge tone="info">{tag}</Badge>}
+        </div>
+      )}
+      <div className="flex items-center gap-4">
         <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-surface-2 text-[34px]">{info.emoji}</span>
         <div className="min-w-0 flex-1">
           <div className="text-[22px] leading-tight font-semibold tracking-tight">{info.label}</div>
-          <div className="mt-0.5 text-sm text-muted">{plan.comeback ? 'Encara que siguin 30 min' : ok ? 'Fet ✓' : info.sub}</div>
+          {(plan.comeback || ok || isMainActivity(plan.activity)) && <div className="mt-0.5 text-sm text-muted">{plan.comeback ? 'Encara que siguin 30 min' : ok ? 'Fet ✓' : info.sub}</div>}
         </div>
       </div>
 
@@ -189,7 +190,7 @@ function DayCard({ plan, done, isToday, activeSession, travel, onMove, onExtra, 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-muted">
         {(plan.activity !== 'descans' || plan.override) && !ok && <button className="flex items-center gap-1.5" onClick={onMove}><ArrowRightLeft size={15} /> {plan.activity === 'descans' ? 'Desfer canvi' : 'Moure'}</button>}
         {plan.activity !== 'extra' && !future && <button onClick={onExtra}>+ Extra</button>}
-        {travel && isToday && <button className="text-info" onClick={onBack}>Ja he tornat del viatge</button>}
+        {travel && isToday && <button className="text-info" onClick={onBack}>He tornat</button>}
       </div>
       {children}
     </Card>

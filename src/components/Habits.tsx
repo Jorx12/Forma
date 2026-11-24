@@ -16,9 +16,8 @@ export function HabitsCard({ date, log }: { date: string; log?: DailyLog }) {
   const stepsTone = steps == null ? 'text-muted' : steps >= STEPS_GOAL.min ? 'text-accent' : 'text-warn';
   const pill = 'flex h-[68px] flex-col items-center justify-center gap-1 rounded-2xl border text-xs font-medium transition';
   return (
-    <Card title={isToday ? 'Hàbits' : `Hàbits · ${fmtDate(date, 'EEE d MMM')}`}
-      right={<button aria-label="Enganxar de Dreceres" className="flex items-center gap-1 text-xs text-muted" onClick={() => setPaste(true)}><ClipboardPaste size={14} /> Salut</button>}>
-      <div className="grid grid-cols-3 gap-2">
+    <Card className="p-3">
+      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
         <button onClick={() => setLog(date, { snack: !log?.snack })}
           className={clsx(pill, log?.snack ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
           <span className="text-xl leading-none">🍎</span>Berenar
@@ -26,13 +25,15 @@ export function HabitsCard({ date, log }: { date: string; log?: DailyLog }) {
         <button onClick={() => setLog(date, { alcohol: log?.alcohol === true ? false : log?.alcohol === false ? undefined : true })}
           className={clsx(pill, log?.alcohol === true ? 'border-warn/40 bg-warn/15 text-warn' : log?.alcohol === false ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
           <span className="text-xl leading-none">{log?.alcohol === false ? '💧' : '🍷'}</span>
-          {log?.alcohol === true ? 'Alcohol' : log?.alcohol === false ? 'Sense alcohol' : 'Alcohol?'}
+          {log?.alcohol === true ? 'Alcohol' : log?.alcohol === false ? 'Sense' : 'Alcohol'}
         </button>
         <button onClick={() => setStepsOpen(true)} className={clsx(pill, 'border-line bg-surface-2')}>
           <Footprints size={20} className={stepsTone} />
           <span className={clsx('tabular', stepsTone)}>{steps != null ? steps.toLocaleString('ca-ES') : 'Passos'}</span>
         </button>
+        <button aria-label="Enganxar de l'app Salut" className="flex w-9 items-center justify-center rounded-2xl text-muted active:bg-surface-2" onClick={() => setPaste(true)}><ClipboardPaste size={17} /></button>
       </div>
+      {!isToday && <p className="mt-2 text-center text-[11px] text-muted">{fmtDate(date, 'EEEE d MMM')}</p>}
       <Sheet open={stepsOpen} onClose={() => setStepsOpen(false)} title="Passos">
         <StepsEditor date={date} value={steps ?? 8000} onDone={() => setStepsOpen(false)} />
       </Sheet>

@@ -37,7 +37,7 @@ export function MonthlyPage() {
   }
 
   return (
-    <Page title="Resum mensual" back>
+    <Page title="Resum" back>
       <div className="-mt-2 flex items-center gap-2">
         <button aria-label="Mes anterior" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2" onClick={() => setParams({ mes: prevMonth(month) }, { replace: true })}><ChevronLeft /></button>
         <div className="flex-1 text-center font-semibold">{monthTitle(month)}</div>
@@ -46,28 +46,26 @@ export function MonthlyPage() {
       {empty ? <Card><Empty>No hi ha dades d'aquest mes.</Empty></Card> : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <Stat label="Pes (mitjana del mes)" value={s.avgKg != null ? `${fmtNum(s.avgKg)} kg` : '—'} tone={s.kgChange != null && s.kgChange < 0 ? 'accent' : undefined}
-              sub={s.kgChange != null ? `${sign(s.kgChange)}${fmtNum(Math.abs(s.kgChange))} kg vs mes anterior` : 'sense mes anterior'} />
+            <Stat label="Pes" value={s.avgKg != null ? `${fmtNum(s.avgKg)} kg` : '—'} tone={s.kgChange != null && s.kgChange < 0 ? 'accent' : undefined}
+              sub={s.kgChange != null ? `${sign(s.kgChange)}${fmtNum(Math.abs(s.kgChange))} kg` : undefined} />
             <Stat label="Cintura" value={s.waistLast != null ? `${fmtNum(s.waistLast)} cm` : '—'} tone={s.waistChange != null && s.waistChange < 0 ? 'accent' : undefined}
-              sub={s.waistChange != null ? `${sign(s.waistChange)}${fmtNum(Math.abs(s.waistChange))} cm dins del mes` : ' '} />
-            <Stat label="Sessions" value={s.totalSessions} sub={`${s.strength} força · ${s.swims} natació${s.hotel ? ` · ${s.hotel} hotel` : ''}`} />
-            <Stat label="Rècords" value={s.prs.length} sub={s.cardioMin ? `${s.cardioMin} min de cardio` : ' '} />
-            <Stat label="Natació" value={`${s.swimMin} min`} sub={`${s.swims} sessions`} />
-            <Stat label="Activitats extra" value={`${s.extraMin} min`} sub={`${s.extras} activitats`} />
+              sub={s.waistChange != null ? `${sign(s.waistChange)}${fmtNum(Math.abs(s.waistChange))} cm` : undefined} />
+            <Stat label="Sessions" value={s.totalSessions} />
+            <Stat label="Rècords" value={s.prs.length} />
           </div>
           {s.loggedDays > 0 && (
-            <Card title="Hàbits">
+            <Card>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.snacks}</div><div className="text-[11px] text-muted">berenars fets</div></div>
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.alcoholDays}</div><div className="text-[11px] text-muted">dies amb alcohol</div></div>
-                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.stepsAvg != null ? s.stepsAvg.toLocaleString('ca-ES') : '—'}</div><div className="text-[11px] text-muted">passos/dia</div></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.snacks}</div><div className="text-[11px] text-muted">🍎</div></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.alcoholDays}</div><div className="text-[11px] text-muted">🍷</div></div>
+                <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.stepsAvg != null ? s.stepsAvg.toLocaleString('ca-ES') : '—'}</div><div className="text-[11px] text-muted">👟/dia</div></div>
               </div>
             </Card>
           )}
           {s.prs.length > 0 && (
-            <Card title="Rècords del mes">
+            <Card title="Rècords">
               <ul className="space-y-2">
-                {s.prs.slice(0, 6).map((p, i) => (
+                {s.prs.slice(0, 4).map((p, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm">
                     <Trophy size={18} className="shrink-0 text-warn" />
                     <span className="flex-1"><strong>{name(p.exerciseId)}</strong> · {p.value}</span>
@@ -77,7 +75,7 @@ export function MonthlyPage() {
               </ul>
             </Card>
           )}
-          <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={share}><Share2 /> Desar o compartir la imatge</Button>
+          <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={share}><Share2 /> Compartir</Button>
         </>
       )}
     </Page>

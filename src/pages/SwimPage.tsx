@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { Pencil, Trash2, Waves } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { FeelingPicker, feelingEmoji } from '../components/Feeling';
@@ -21,21 +21,16 @@ export function SwimPage() {
   const week = swims.filter((s) => weekStartISO(s.date) === thisWeek);
   const weeks = swimWeeks(swims);
   const last4 = weeks.slice(-4).reduce((t, w) => t + w.minutes, 0);
-  const recent = swims.filter((s) => s.distanceM > 0).slice(0, 5);
-  const avgPace = recent.length ? recent.reduce((t, s) => t + pace100(s), 0) / recent.length : 0;
-  const best = swims.filter((s) => s.distanceM >= 400).reduce((b, s) => (!b || pace100(s) < pace100(b) ? s : b), null as Swim | null);
 
   return (
-    <Page title="Natació" subtitle="Dilluns · 40–45 min">
+    <Page title="Natació">
       <SwimForm last={swims[0]} />
       <div className="grid grid-cols-2 gap-2">
-        <Stat label="Aquesta setmana" value={`${week.reduce((t, s) => t + s.durationMin, 0)} min`} sub={`${week.length} sessions`} />
-        <Stat label="Últimes 4 setmanes" value={`${last4} min`} sub={`${weeks.slice(-4).reduce((t, w) => t + w.count, 0)} sessions`} />
-        {avgPace > 0 && <Stat label="Ritme mitjà" value={fmtPace(avgPace).replace(' /100 m', '')} sub="/100 m" />}
-        {best && <Stat label="Millor ritme" value={fmtPace(pace100(best)).replace(' /100 m', '')} sub={`${fmtMeters(best.distanceM)} · ${fmtDate(best.date, 'd MMM')}`} />}
+        <Stat label="Setmana" value={`${week.reduce((t, s) => t + s.durationMin, 0)} min`} />
+        <Stat label="4 setmanes" value={`${last4} min`} />
       </div>
       {swims.length > 0 && (
-        <Card title="Minuts per setmana">
+        <Card>
           <div style={{ height: 170 }} className="-ml-3">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeks} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -55,10 +50,10 @@ export function SwimPage() {
           <ul className="divide-y divide-line">
             {swims.map((s) => (
               <li key={s.id} className="flex items-center gap-3 py-2.5">
-                <Waves size={20} className="shrink-0 text-info" />
+                
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium">{s.durationMin} min {feelingEmoji(s.feeling)}</div>
-                  <div className="truncate text-xs text-muted">{fmtDate(s.date, 'EEE d MMM')}{s.distanceM > 0 && ` · ${fmtMeters(s.distanceM)} · ${fmtPace(pace100(s))}`}{s.note && ` · ${s.note}`}</div>
+                  <div className="text-[15px]">{s.durationMin} min {feelingEmoji(s.feeling)}<span className="ml-2 text-sm text-muted">{fmtDate(s.date, 'EEE d MMM')}</span></div>
+                  {(s.distanceM > 0 || s.note) && <div className="truncate text-xs text-muted">{s.distanceM > 0 && `${fmtMeters(s.distanceM)} · ${fmtPace(pace100(s))}`}{s.note && ` ${s.note}`}</div>}
                 </div>
                 <button aria-label="Editar" onClick={() => setEdit(s)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted active:bg-surface-2"><Pencil size={18} /></button>
               </li>
@@ -84,7 +79,7 @@ function SwimForm({ last }: { last?: Swim }) {
   };
   return (
     <Card>
-      <SwimFields key={key} initial={initial} saveLabel={saved ? 'Desat ✓' : 'Desar sessió'} onSave={async (s) => {
+      <SwimFields key={key} initial={initial} saveLabel={saved ? 'Desat ✓' : 'Desar'} onSave={async (s) => {
         await db.swims.put({ ...s, id: uid() });
         setSaved(true); setKey(key + 1);
         setTimeout(() => setSaved(false), 2000);
@@ -104,7 +99,7 @@ function SwimFields({ initial, onSave, onDelete, saveLabel = 'Desar' }: {
       <Stepper value={s.durationMin} step={5} min={5} max={240} unit="min" onChange={(v) => set('durationMin', v)} />
       <FeelingPicker value={s.feeling} onChange={(f) => set('feeling', f)} />
       <input type="date" aria-label="Data" className={inputCls} value={s.date} max={todayISO()} onChange={(e) => set('date', e.target.value)} />
-      <Disclosure label="Més detalls">
+      <Disclosure label="Distància i nota">
         <div className="space-y-4">
           <Stepper label="Distància" value={s.distanceM} step={s.poolM * 2} min={0} max={20000} unit="m" onChange={(v) => set('distanceM', v)} />
           {s.distanceM > 0 && <p className="-mt-2 text-center text-xs text-muted">{Math.round(s.distanceM / s.poolM)} llargs · {fmtPace(pace100(s))}</p>}

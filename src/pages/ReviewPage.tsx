@@ -32,7 +32,6 @@ export function ReviewPage() {
   const st = weekStats(week, weighIns, measures, sessions, swims);
   const reviewDay = addDaysISO(week, 7);
   const hab = weekHabits(week, logs);
-  const fromLogs = hab.loggedDays > 0;
   const f: WeeklyReview = form ?? existing ?? { week, sessionsDone: st.sessions, snacksPlanned: Math.min(5, hab.snacks), alcoholDays: hab.alcoholDays, savedAt: '' };
   const insight = alcoholInsight(weighIns, logs, reviews);
   const set = (patch: Partial<WeeklyReview>) => setForm({ ...f, ...patch });
@@ -50,15 +49,15 @@ export function ReviewPage() {
   }
 
   return (
-    <Page title="Revisió setmanal" back>
+    <Page title="Revisió" back>
       <div className="-mt-2 flex items-center gap-2">
         <button aria-label="Setmana anterior" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2" onClick={() => setWeek(addDaysISO(week, -7))}><ChevronLeft /></button>
-        <div className="flex-1 text-center text-sm"><strong>{fmtDate(week, 'd MMM')} – {fmtDate(addDaysISO(week, 6), 'd MMM')}</strong>{existing && <span className="ml-2 text-accent">✓ revisada</span>}</div>
+        <div className="flex-1 text-center text-sm"><strong>{fmtDate(week, 'd MMM')} – {fmtDate(addDaysISO(week, 6), 'd MMM')}</strong>{existing && <span className="ml-2 text-accent">✓</span>}</div>
         <button aria-label="Setmana següent" disabled={!canNext} className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 disabled:opacity-30" onClick={() => setWeek(addDaysISO(week, 7))}><ChevronRight /></button>
       </div>
 
       {insight && f.alcoholDays >= 2 && (
-        <Notice tone="info">🍷 A les teves setmanes amb 3 dies o més d'alcohol, la mitjana de pes {insight.high >= 0 ? 'puja' : 'baixa'} {fmtNum(Math.abs(insight.high), 2)} kg; amb 2 o menys, {insight.low >= 0 ? 'puja' : 'baixa'} {fmtNum(Math.abs(insight.low), 2)} kg ({insight.nHigh} i {insight.nLow} setmanes).</Notice>
+        <Notice tone="info">🍷 3+ dies d'alcohol: {insight.high >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.high), 2)} kg/setm. · 2 o menys: {insight.low >= 0 ? '+' : '−'}{fmtNum(Math.abs(insight.low), 2)} kg/setm.</Notice>
       )}
       {alerts.map((x) => (
         <Notice key={x.id} tone={x.tone}>
@@ -75,19 +74,18 @@ export function ReviewPage() {
             <li className="py-3"><Stepper compact label="Cintura (cm)" value={waistIn ?? measures.filter((m) => m.waistCm).at(-1)?.waistCm ?? 95} step={0.5} digits={1} min={50} max={200} unit="cm" onChange={setWaistIn} /></li>
           )}
           <CheckRow ok={st.sessions >= 3} label="Sessions" value={<span className="tabular">{st.sessions}/3</span>} />
-          <CheckRow ok={f.snacksPlanned >= 5} label="Berenars" sub={fromLogs ? `registre: ${hab.snacks}` : undefined}
+          <CheckRow ok={f.snacksPlanned >= 5} label="Berenars"
             value={<Mini value={f.snacksPlanned} max={5} onChange={(v) => set({ snacksPlanned: v })} suffix="/5" />} />
-          <CheckRow ok={f.alcoholDays <= 2} label="Dies amb alcohol" sub={f.alcoholDays > 2 ? 'màxim 2' : fromLogs ? `registre: ${hab.alcoholDays}` : 'màxim 2'}
+          <CheckRow ok={f.alcoholDays <= 2} label="Alcohol (màx. 2)"
             value={<Mini value={f.alcoholDays} max={7} onChange={(v) => set({ alcoholDays: v })} />} />
-          <CheckRow ok={!!f.nextGoal?.trim()} label="Objectiu de la setmana vinent" />
+          <CheckRow ok={!!f.nextGoal?.trim()} label="Objectiu" />
           <li className="pb-3">
-            <input className={inputCls} value={f.nextGoal ?? ''} placeholder="p. ex. planificar els berenars el diumenge" onChange={(e) => set({ nextGoal: e.target.value })} />
+            <input className={inputCls} value={f.nextGoal ?? ''} placeholder="Per a la setmana vinent" onChange={(e) => set({ nextGoal: e.target.value })} />
           </li>
         </ul>
-        {hab.stepsAvg != null && <p className="pb-2 text-xs text-muted">👟 {hab.stepsAvg.toLocaleString('ca-ES')} passos/dia de mitjana</p>}
       </Card>
 
-      <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Revisió desada ✓' : existing ? 'Actualitzar revisió' : 'Desar revisió'}</Button>
+      <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat ✓' : existing ? 'Actualitzar' : 'Desar'}</Button>
     </Page>
   );
 }
