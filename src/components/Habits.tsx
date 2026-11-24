@@ -81,7 +81,7 @@ export function PasteShortcut({ initial, onDone }: { initial?: ShortcutData | nu
         <>
           <Button variant="primary" size="lg" className="w-full" onClick={readClipboard}><ClipboardPaste /> Enganxar de Dreceres</Button>
           {error && <Notice tone="warn">{error}</Notice>}
-          <textarea className="h-20 w-full rounded-xl border border-line bg-surface-2 p-3 text-sm" placeholder="o enganxa aquí: FORMA passos=8532 pes=83,4"
+          <textarea className="h-20 w-full rounded-xl border border-line bg-surface-2 p-3 text-sm" placeholder="o enganxa el text aquí"
             value={text} onChange={(e) => { setText(e.target.value); setData(parseShortcut(e.target.value)); }} />
           <Link to="/mes/dreceres" className="block text-center text-xs text-info" onClick={onDone}>Com crear la drecera de l'iPhone</Link>
         </>
@@ -89,8 +89,9 @@ export function PasteShortcut({ initial, onDone }: { initial?: ShortcutData | nu
       {data && (
         <>
           <div className="rounded-xl bg-surface-2 p-3 text-sm">
-            <div className="mb-1 text-xs text-muted">{fmtDate(data.date ?? todayISO(), 'EEEE d MMMM')}</div>
+            {!data.days && <div className="mb-1 text-xs text-muted">{fmtDate(data.date ?? todayISO(), 'EEEE d MMMM')}</div>}
             {data.steps != null && <div>👟 <strong>{data.steps.toLocaleString('ca-ES')}</strong> passos</div>}
+            {data.days?.map((x) => <div key={x.date} className="flex justify-between"><span className="text-muted">{fmtDate(x.date, 'EEE d MMM')}</span><span className="tabular">👟 {x.steps.toLocaleString('ca-ES')}</span></div>)}
             {data.weightKg != null && <div>⚖️ <strong>{data.weightKg.toLocaleString('ca-ES')} kg</strong></div>}
           </div>
           <div className="flex gap-2">

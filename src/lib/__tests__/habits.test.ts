@@ -13,6 +13,13 @@ describe('text de Dreceres', () => {
     expect(parseShortcut('passos=8532,6 data=2026-11-23')).toEqual({ steps: 8533, date: '2026-11-23' });
     expect(parseShortcut('steps: 10450 weight: 82.95 kg')).toEqual({ steps: 10450, weightKg: 83 });
   });
+  it('llegeix els passos de diversos dies', () => {
+    expect(parseShortcut('2026-11-22 7.410\n2026-11-23 9003\n2026-11-24 10.200')?.days).toEqual([
+      { date: '2026-11-22', steps: 7410 }, { date: '2026-11-23', steps: 9003 }, { date: '2026-11-24', steps: 10200 },
+    ]);
+    expect(parseShortcut('FORMA 2026-11-23: 8532, 2026-11-24: 9100')?.days?.length).toBe(2);
+    expect(parseShortcut('FORMA passos=8532 data=2026-11-24')).toEqual({ steps: 8532, date: '2026-11-24' });
+  });
   it('ignora textos que no són de Forma o valors absurds', () => {
     expect(parseShortcut('hola')).toBeNull();
     expect(parseShortcut('FORMA passos= pes=')).toBeNull();
@@ -25,6 +32,8 @@ describe('text de Dreceres', () => {
     expect((await db.weighIns.get('m'))?.weightKg).toBe(83.9);
     expect(r1.result.join(' ')).toMatch(/no desat/);
     expect((await db.dailyLogs.get('2026-11-25'))?.steps).toBe(9000);
+    await applyShortcut({ days: [{ date: '2026-11-20', steps: 7000 }, { date: '2026-11-21', steps: 12000 }] });
+    expect((await db.dailyLogs.get('2026-11-21'))?.steps).toBe(12000);
     await applyShortcut({ weightKg: 83.1, date: '2026-11-26' });
     expect((await db.weighIns.where('date').equals('2026-11-26').first())).toMatchObject({ weightKg: 83.1, source: 'salut' });
   });

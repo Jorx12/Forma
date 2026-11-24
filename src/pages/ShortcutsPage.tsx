@@ -1,35 +1,54 @@
+import { ClipboardPaste } from 'lucide-react';
 import { useState } from 'react';
 import { PasteShortcut } from '../components/Habits';
-import { ClipboardPaste } from 'lucide-react';
-import { Button, Card, Page } from '../components/ui';
+import { Card, Page, Segmented } from '../components/ui';
 
-const TEMPLATE = 'FORMA passos=[Estadístiques] pes=[Mostres de Salut]';
+type Recipe = 'setmana' | 'avui';
+
+const Step = ({ n, children }: { n: number; children: React.ReactNode }) => (
+  <li className="flex gap-3">
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs text-muted">{n}</span>
+    <span className="text-[15px] leading-snug">{children}</span>
+  </li>
+);
+const A = ({ children }: { children: React.ReactNode }) => <strong className="font-semibold text-accent">{children}</strong>;
 
 export function ShortcutsPage() {
-  const [copied, setCopied] = useState(false);
+  const [recipe, setRecipe] = useState<Recipe>('setmana');
   return (
-    <Page title="Dreceres" back="/mes">
-      <p className="-mt-2 text-sm text-muted">Passos i pes de l'app Salut → porta-retalls → Forma (Avui · <ClipboardPaste size={13} className="inline" />).</p>
+    <Page title="Passos de Salut" back="/mes">
+      <p className="-mt-2 text-sm text-muted">Una drecera copia els passos i a Avui toques <ClipboardPaste size={13} className="inline" />.</p>
+
+      <Segmented value={recipe} onChange={setRecipe} options={[{ value: 'setmana', label: 'Últims 7 dies' }, { value: 'avui', label: 'Només avui' }]} />
+
       <Card title="Crear la drecera">
-        <ol className="list-decimal space-y-2.5 pl-5 text-sm leading-relaxed">
-          <li>Obre l'app <strong>Dreceres</strong> → <strong>+</strong> (drecera nova) i posa-li el nom <em>Forma</em>.</li>
-          <li>Afegeix l'acció <strong>Cerca mostres de Salut</strong> (<em>Find Health Samples</em>): tipus <strong>Passos</strong>, data d'inici <strong>és avui</strong>.</li>
-          <li>Afegeix <strong>Calcula estadístiques</strong> (<em>Calculate Statistics</em>): <strong>Suma</strong> de les mostres.</li>
-          <li><em>Opcional, pes:</em> una altra <strong>Cerca mostres de Salut</strong> amb tipus <strong>Pes</strong>, data d'inici <strong>és avui</strong>, ordenades per data (la més recent primer) i límit <strong>1</strong>.</li>
-          <li>Afegeix l'acció <strong>Text</strong> i escriu-hi (inserint les variables dels passos anteriors on hi ha els claudàtors):
-            <div className="mt-1.5 rounded-lg bg-surface-2 px-3 py-2 font-mono text-xs">{TEMPLATE}</div>
-            <Button size="sm" className="mt-1.5" onClick={async () => { try { await navigator.clipboard.writeText('FORMA passos= pes='); setCopied(true); } catch { /* ignore */ } }}>{copied ? 'Copiat ✓' : 'Copiar el text base'}</Button>
-          </li>
-          <li>Afegeix <strong>Copia al porta-retalls</strong> (<em>Copy to Clipboard</em>).</li>
-          <li><em>Opcional:</em> <strong>Mostra una notificació</strong> amb «Obre Forma i enganxa».</li>
-        </ol>
+        {recipe === 'setmana' ? (
+          <ol className="space-y-3">
+            <Step n={1}>App <A>Dreceres</A> → <A>+</A> · nom: <em>Forma passos</em></Step>
+            <Step n={2}><A>Cerca mostres de Salut</A><br /><span className="text-sm text-muted">Tipus: Passos · Data d'inici: últims 7 dies · Agrupar per: Dia</span></Step>
+            <Step n={3}><A>Repeteix amb cada element</A> i, a dins:</Step>
+            <Step n={4}><A>Formata la data</A><br /><span className="text-sm text-muted">Data d'inici de l'element · Personalitzat: <code>yyyy-MM-dd</code></span></Step>
+            <Step n={5}><A>Text</A>: <code>[Data formatada] [Valor de l'element]</code></Step>
+            <Step n={6}>Després de la repetició: <A>Combina el text</A> (resultats de la repetició, amb salts de línia)</Step>
+            <Step n={7}><A>Copia al porta-retalls</A></Step>
+          </ol>
+        ) : (
+          <ol className="space-y-3">
+            <Step n={1}>App <A>Dreceres</A> → <A>+</A> · nom: <em>Forma passos</em></Step>
+            <Step n={2}><A>Cerca mostres de Salut</A><br /><span className="text-sm text-muted">Tipus: Passos · Data d'inici: avui</span></Step>
+            <Step n={3}><A>Calcula estadístiques</A>: Suma</Step>
+            <Step n={4}><A>Text</A>: <code>FORMA passos=[Estadístiques]</code></Step>
+            <Step n={5}><A>Copia al porta-retalls</A></Step>
+          </ol>
+        )}
+        <p className="mt-4 text-xs text-muted">Els noms poden variar una mica segons l'idioma. Cerca «Salut» a la llista d'accions.</p>
       </Card>
 
-      <Card title="Automàtica (opcional)">
-        <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
-          <li>A Dreceres, pestanya <strong>Automatització</strong> → <strong>+</strong> → <strong>Hora del dia</strong>, per exemple a les 21.30, cada dia.</li>
-          <li>Tria <strong>Executar immediatament</strong> i selecciona la drecera <em>Forma</em>.</li>
-          <li>Quan obris Forma, toca <strong>Dreceres</strong> a la targeta d'hàbits i confirma.</li>
+      <Card title="Que s'executi sola">
+        <ol className="space-y-3">
+          <Step n={1}>Dreceres → <A>Automatització</A> → <A>+</A> → <A>Hora del dia</A> (p. ex. 21.30)</Step>
+          <Step n={2}><A>Executar immediatament</A> · drecera <em>Forma passos</em></Step>
+          <Step n={3}>Quan obris Forma: Avui → <ClipboardPaste size={14} className="inline" /> → Desar</Step>
         </ol>
       </Card>
 

@@ -19,7 +19,7 @@ const GROUPS = [
   { title: 'Configuració', items: [
     { to: '/mes/perfil', icon: User, label: 'Perfil' },
     { to: '/mes/calories', icon: Flame, label: 'Calories' },
-    { to: '/mes/dreceres', icon: Zap, label: 'Dreceres' },
+    { to: '/mes/dreceres', icon: Zap, label: 'Passos de Salut' },
     { to: '/mes/dades', icon: Database, label: 'Dades' },
     { to: '/mes/installar', icon: Smartphone, label: 'Instal·lar' },
   ] },

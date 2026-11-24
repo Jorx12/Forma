@@ -57,7 +57,7 @@ export function alcoholInsight(weighIns: WeighIn[], logs: DailyLog[], reviews: W
 
 // ── Dreceres (Shortcuts) de l'iPhone ──
 
-export interface ShortcutData { steps?: number; weightKg?: number; date?: string }
+export interface ShortcutData { steps?: number; weightKg?: number; date?: string; /** passos de diversos dies */ days?: { date: string; steps: number }[] }
 
 /** Llegeix un nombre de passos: «8500», «8.500», «8 500», «8500,0» */
 function parseSteps(raw: string): number | undefined {
@@ -69,8 +69,17 @@ function parseSteps(raw: string): number | undefined {
 
 /** Text que genera la drecera, p. ex. «FORMA passos=8532 pes=83,4 kg data=2026-11-24» */
 export function parseShortcut(text: string): ShortcutData | null {
-  if (!/passos|pes|steps|weight/i.test(text)) return null;
   const out: ShortcutData = {};
+  // Diversos dies: «2026-11-23 8532 · 2026-11-24 10.200» (també amb «:» o «=»)
+  const days = new Map<string, number>();
+  for (const m of text.matchAll(/(\d{4}-\d{2}-\d{2})\s*[:=]?\s*(\d[\d.,\u00a0\u202f]*\d|\d)(?!\d*-)/g)) {
+    const n = parseSteps(m[2]);
+    if (n != null && n >= 0 && n <= 100000) days.set(m[1], n);
+  }
+  if (days.size > 1 || (days.size === 1 && !/(?:data|date)\s*[=:]/i.test(text))) {
+    out.days = [...days.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, steps]) => ({ date, steps }));
+  }
+  if (!out.days && !/passos|pes|steps|weight/i.test(text)) return null;
   const st = text.match(/(?:passos|steps)\s*[=:]\s*(\d[\d.,\s\u00a0\u202f]*)/i);
   if (st) out.steps = parseSteps(st[1].trim());
   const kg = text.match(/(?:pes|weight)\s*[=:]\s*(\d{2,3}(?:[.,]\d+)?)/i);
@@ -79,13 +88,18 @@ export function parseShortcut(text: string): ShortcutData | null {
   if (d) out.date = d[1];
   if (out.steps != null && (out.steps < 0 || out.steps > 100000)) delete out.steps;
   if (out.weightKg != null && (out.weightKg < 30 || out.weightKg > 250)) delete out.weightKg;
-  return out.steps != null || out.weightKg != null ? out : null;
+  if (out.days) delete out.steps;
+  return out.steps != null || out.weightKg != null || out.days?.length ? out : null;
 }
 
 /** Desa les dades: passos al registre diari i pes com a pesada (si aquell dia no n'hi ha cap de manual) */
 export async function applyShortcut(d: ShortcutData) {
   const date = d.date ?? todayISO();
   const result: string[] = [];
+  if (d.days?.length) {
+    for (const x of d.days) await setLog(x.date, { steps: x.steps, stepsSource: 'salut' });
+    result.push(`passos de ${d.days.length} dies`);
+  }
   if (d.steps != null) {
     await setLog(date, { steps: d.steps, stepsSource: 'salut' });
     result.push(`${d.steps.toLocaleString('ca-ES')} passos`);
