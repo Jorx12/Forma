@@ -40,7 +40,7 @@ export interface Profile {
   notes?: string;
 }
 
-export type WeighInSource = 'manual' | 'csv';
+export type WeighInSource = 'manual' | 'csv' | 'salut';
 
 export interface WeighIn {
   id: string;
@@ -261,6 +261,17 @@ export interface WeeklyReview {
   alcoholDays: number;
   nextGoal?: string;
   savedAt: string;
+  isDemo?: boolean;
+}
+
+/** Registre diari d'hàbits (un per dia) */
+export interface DailyLog {
+  date: string;
+  snack?: boolean;
+  alcohol?: boolean;
+  steps?: number;
+  /** d'on venen els passos */
+  stepsSource?: 'manual' | 'salut';
   isDemo?: boolean;
 }
 

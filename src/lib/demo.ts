@@ -1,6 +1,6 @@
 import { planCardio } from '../data/cardio';
 import { db, deleteMeta, getMeta, setMeta, uid } from '../db/db';
-import type { BodyMeasurement, DayKey, ExtraActivity, Feeling, RoutineDay, Session, SessionEntry, Swim, WeeklyReview, WeighIn } from '../db/types';
+import type { BodyMeasurement, DailyLog, DayKey, ExtraActivity, Feeling, RoutineDay, Session, SessionEntry, Swim, WeeklyReview, WeighIn } from '../db/types';
 import { addDaysISO, toISODate, weekStartISO } from './dates';
 import { generateRoutine, incrementFor, newRoutine } from './generator';
 
@@ -38,6 +38,7 @@ export async function loadDemo() {
 
   const weighIns: WeighIn[] = [], waist: BodyMeasurement[] = [], swims: Swim[] = [], extras: ExtraActivity[] = [];
   const sessions: Session[] = [], reviews: WeeklyReview[] = [];
+  const logs: DailyLog[] = [];
 
   function session(date: string, rd: RoutineDay, w: number): Session {
     const entries: SessionEntry[] = rd.items.map((it) => {
@@ -100,16 +101,26 @@ export async function loadDemo() {
     if (past(6) && w % 3 === 1) extras.push({ id: uid(), date: at(6), kind: 'pitch', minutes: 120, feeling: 3, isDemo: true });
     if (past(6) && w % 3 === 2) extras.push({ id: uid(), date: at(6), kind: 'caminar', minutes: 60, feeling: 3, isDemo: true });
 
+    // Hàbits diaris: més alcohol les setmanes d'estancament (6 i 7)
+    for (let d = 0; d < 7; d++) {
+      if (at(d) > today) break;
+      const weekend = d >= 4;
+      const alcohol = (w === 6 || w === 7) ? d === 2 || weekend : w % 4 === 3 ? weekend : d === 5 || (w % 2 === 0 && d === 4);
+      logs.push({ date: at(d), snack: d < 5 ? noise() > -0.3 : noise() > 0.2, alcohol, steps: Math.round((8200 + noise() * 5000 + (d === 6 ? 2500 : 0)) / 10) * 10, stepsSource: 'salut', isDemo: true });
+    }
+
     // Revisió de la setmana (feta el dilluns següent)
     if (addDaysISO(mon, 7) <= today) {
       reviews.push({
-        week: mon, sessionsDone: 3, snacksPlanned: 3 + (w % 3), alcoholDays: w % 4 === 3 ? 3 : 1 + (w % 2),
+        week: mon, sessionsDone: 3, snacksPlanned: Math.min(5, logs.filter((l) => l.date >= mon && l.date < addDaysISO(mon, 7) && l.snack).length),
+        alcoholDays: logs.filter((l) => l.date >= mon && l.date < addDaysISO(mon, 7) && l.alcohol).length,
         nextGoal: GOALS[w % GOALS.length], savedAt: new Date(`${addDaysISO(mon, 7)}T09:00:00`).toISOString(), isDemo: true,
       });
     }
   }
 
-  await db.transaction('rw', [db.weighIns, db.sessions, db.swims, db.bodyMeasurements, db.activities, db.weeklyReviews], async () => {
+  await db.transaction('rw', [db.weighIns, db.sessions, db.swims, db.bodyMeasurements, db.activities, db.weeklyReviews, db.dailyLogs], async () => {
+    for (const l of logs) if (!(await db.dailyLogs.get(l.date))) await db.dailyLogs.put(l);
     await db.weighIns.bulkPut(weighIns);
     await db.sessions.bulkPut(sessions);
     await db.swims.bulkPut(swims);
@@ -122,7 +133,8 @@ export async function loadDemo() {
 
 export async function clearDemo() {
   const backup = await getMeta<{ startDate: string }>('demoBackup');
-  await db.transaction('rw', [db.weighIns, db.sessions, db.swims, db.bodyMeasurements, db.activities, db.weeklyReviews, db.profile, db.meta], async () => {
+  await db.transaction('rw', [db.weighIns, db.sessions, db.swims, db.bodyMeasurements, db.activities, db.weeklyReviews, db.dailyLogs, db.profile, db.meta], async () => {
+    await db.dailyLogs.filter((l) => !!l.isDemo).delete();
     await db.swims.filter((s) => !!s.isDemo).delete();
     await db.weighIns.filter((w) => !!w.isDemo).delete();
     await db.sessions.filter((s) => !!s.isDemo).delete();

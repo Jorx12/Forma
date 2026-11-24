@@ -4,10 +4,12 @@ import { ArrowRightLeft, Check, ChevronRight, ClipboardCheck, Play, RotateCcw, S
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { FeelingPicker, feelingEmoji } from '../components/Feeling';
+import { HabitsCard } from '../components/Habits';
+import { prevMonth } from '../lib/monthly';
 import { Badge, Button, Card, Field, inputCls, Notice, Page, ProgressBar, Segmented, Sheet, Stepper } from '../components/ui';
 import { ACTIVITY_INFO, isMainActivity, WEEKDAY_SHORT } from '../data/plan';
 import { db, uid } from '../db/db';
-import { useActivities, useMeasurements, useMeta, useProfile, useReviews, useSchedule, useSessions, useSwims, useWeighIns } from '../db/hooks';
+import { useActivities, useDailyLogs, useMeasurements, useMeta, useProfile, useReviews, useSchedule, useSessions, useSwims, useWeighIns } from '../db/hooks';
 import type { ExtraKind, Feeling, Profile, ScheduleOverride } from '../db/types';
 import { daysSinceExport } from '../lib/backup';
 import { addDaysISO, fmtDate, fmtLong, fmtNum, todayISO, weekStartISO } from '../lib/dates';
@@ -28,13 +30,14 @@ export function TodayPage() {
   const schedule = useSchedule();
   const reviews = useReviews();
   const measures = useMeasurements();
+  const logs = useDailyLogs();
   const activeId = useMeta<string>('activeSessionId');
   const lastExport = useMeta<string>('lastExportAt');
   const sinceExport = useLiveQuery(daysSinceExport, [lastExport]);
   const [selected, setSelected] = useState(todayISO());
   const [sheet, setSheet] = useState<'move' | 'extra' | null>(null);
   const nav = useNavigate();
-  if (!profile || !weighIns || !sessions || !swims || !extras || !schedule || !reviews || !measures) return null;
+  if (!profile || !weighIns || !sessions || !swims || !extras || !schedule || !reviews || !measures || !logs) return null;
 
   const today = todayISO();
   const monday = weekStartISO(today);
@@ -86,6 +89,8 @@ export function TodayPage() {
       <DayCard plan={sel.plan} done={sel.done} isToday={selected === today} activeSession={!!active}
         onMove={() => setSheet('move')} onExtra={() => setSheet('extra')} />
 
+      {selected <= today && <HabitsCard date={selected} log={logs.find((l) => l.date === selected)} />}
+
       <Card title={`Setmana · ${weekCount}/3 sessions`}>
         <div className="grid grid-cols-7 gap-1">
           {days.map(({ plan, done }) => {
@@ -117,6 +122,11 @@ export function TodayPage() {
       {(wd === 1 || !reviewDone) && !reviewDone && (
         <Link to="/revisio" className="block">
           <Card><div className="flex items-center gap-3"><ClipboardCheck className="text-accent" /><div className="flex-1"><div className="font-semibold">Revisió setmanal</div><div className="text-xs text-muted">Setmana del {fmtDate(prevWeek, 'd MMM')} · 2 minuts</div></div><ChevronRight size={18} className="text-muted" /></div></Card>
+        </Link>
+      )}
+      {Number(today.slice(8, 10)) <= 7 && (
+        <Link to={`/resum?mes=${prevMonth(today.slice(0, 7))}`} className="block">
+          <Notice tone="ok">📊 El resum de {fmtDate(`${prevMonth(today.slice(0, 7))}-01`, 'MMMM')} ja és llest. Toca per veure'l.</Notice>
         </Link>
       )}
       {hour >= 16.5 && hour < 18 && (

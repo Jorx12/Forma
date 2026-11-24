@@ -15,6 +15,22 @@ Quadern personal de pes i gimnàs. És una PWA en català, pensada per al mòbil
 | **Progrés** | Historial, gràfic de pes per exercici i constància |
 | **Més** | Revisió setmanal, setmana tipus, alimentació, rutines (editables), perfil, màquines, dades i instal·lació |
 
+**Hàbits diaris (10 segons, a Avui)**
+- Berenar fet, alcohol sí/no i passos.
+- Omplen sols la revisió setmanal (berenars, dies amb alcohol i passos de mitjana).
+- Quan hi ha prou setmanes, la revisió compara el pes de les setmanes amb 3 dies d'alcohol o més amb la resta.
+
+**Dreceres de l'iPhone (Més → Dreceres)**
+- Una drecera llegeix els passos (i el pes, si la bàscula es sincronitza amb Salut) i copia `FORMA passos=8532 pes=83,4` al porta-retalls.
+- A Avui → Hàbits → **Dreceres → Enganxar**, i es desen.
+- El pes mai sobreescriu una pesada manual.
+- També accepta `#/importar?passos=8532&pes=83.4&data=2026-11-24`.
+
+**Resum mensual (Progrés → Resum mensual)**
+- Mitjana de pes vs el mes anterior, cintura, sessions, rècords, natació, extres i hàbits.
+- Es pot desar o compartir com a imatge.
+- Els primers dies de cada mes, Avui avisa que el resum del mes anterior és llest.
+
 **Revisió setmanal (dilluns)**
 - Checklist: mitjana de pes i cintura, sessions /3, berenars /5, dies amb alcohol (màxim 2) i objectiu per a la setmana vinent.
 - Avisos automàtics:
@@ -66,7 +82,7 @@ Si fa més de 14 dies que no exportes, la pantalla d'inici mostra un avís discr
 
 ## Model de dades
 
-Base de dades IndexedDB `forma` (Dexie, esquema v3). Els tipus són a `src/db/types.ts`.
+Base de dades IndexedDB `forma` (Dexie, esquema v4). Els tipus són a `src/db/types.ts`.
 
 | Taula | Contingut |
 |---|---|
@@ -79,6 +95,7 @@ Base de dades IndexedDB `forma` (Dexie, esquema v3). Els tipus són a `src/db/ty
 | `schedule` | Canvis puntuals del pla per dia: sessions mogudes, tornada de viatge (v3) |
 | `activities` | Activitats extra: pàdel, pitch and putt, caminar (v3) |
 | `weeklyReviews` | Revisions setmanals (v3) |
+| `dailyLogs` | Hàbits diaris: berenar, alcohol i passos (v4) |
 | `meta` | Clau/valor: sessió activa, temporitzador, última exportació, tema, còpia de la data d'inici mentre hi ha dades de prova |
 | `bodyMeasurements`, `progressPhotos` | **Preparades per al futur** (mesures corporals i fotos). Encara no tenen pantalla |
 
@@ -86,7 +103,7 @@ El camp `source: 'csv'` de `weighIns` deixa preparada la importació de la bàsc
 
 ### Migracions
 
-- **Esquema (Dexie):** cada versió només afegeix taules (v2: natació; v3: pla setmanal, activitats i revisions). No se n'esborra cap.
+- **Esquema (Dexie):** cada versió només afegeix taules (v2: natació; v3: pla setmanal, activitats i revisions; v4: hàbits diaris). No se n'esborra cap.
 - **Dades (`src/db/migrations.ts`):** s'executen en obrir l'app i només afegeixen o completen informació:
   - els exercicis nous del pla;
   - les rutines «Pla personal» (A, B i hotel). L'anterior es conserva, inactiva, per a l'historial;

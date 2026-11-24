@@ -13,5 +13,6 @@ export const useSchedule = () => useLiveQuery(async () => new Map((await db.sche
 export const useActivities = () => useLiveQuery(() => db.activities.orderBy('date').reverse().toArray(), []);
 export const useReviews = () => useLiveQuery(() => db.weeklyReviews.orderBy('week').reverse().toArray(), []);
 export const useMeasurements = () => useLiveQuery(() => db.bodyMeasurements.orderBy('date').toArray(), []);
+export const useDailyLogs = () => useLiveQuery(() => db.dailyLogs.orderBy('date').toArray(), []);
 export const useMeta = <T,>(key: string) =>
   useLiveQuery(async () => ((await db.meta.get(key))?.value as T | undefined) ?? null, [key]);

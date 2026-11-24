@@ -15,7 +15,7 @@ export function ProgressPage() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get('t') as Tab) ?? 'historial';
   return (
-    <Page title="Progrés">
+    <Page title="Progrés" action={<Link to="/resum" className="rounded-xl bg-surface-2 px-3 py-2 text-sm font-semibold">📊 Resum mensual</Link>}>
       <Segmented value={tab} onChange={(t) => setParams({ t }, { replace: true })}
         options={[{ value: 'historial', label: 'Historial' }, { value: 'exercicis', label: 'Exercicis' }, { value: 'constancia', label: 'Constància' }]} />
       {tab === 'historial' && <History />}

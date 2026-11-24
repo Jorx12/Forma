@@ -19,6 +19,9 @@ import { FoodPage } from './pages/FoodPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { TodayPage } from './pages/TodayPage';
 import { WeekPlanPage } from './pages/WeekPlanPage';
+import { ImportPage } from './pages/ImportPage';
+import { MonthlyPage } from './pages/MonthlyPage';
+import { ShortcutsPage } from './pages/ShortcutsPage';
 import { WeightPage } from './pages/WeightPage';
 
 const router = createHashRouter([
@@ -35,6 +38,9 @@ const router = createHashRouter([
       { path: '/progres/sessio/:id', element: <SummaryPage fromHistory /> },
       { path: '/progres/exercici/:id', element: <ExerciseProgressPage /> },
       { path: '/revisio', element: <ReviewPage /> },
+      { path: '/resum', element: <MonthlyPage /> },
+      { path: '/importar', element: <ImportPage /> },
+      { path: '/mes/dreceres', element: <ShortcutsPage /> },
       { path: '/mes', element: <MorePage /> },
       { path: '/mes/setmana', element: <WeekPlanPage /> },
       { path: '/mes/alimentacio', element: <FoodPage /> },

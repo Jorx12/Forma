@@ -1,10 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type {
   BodyMeasurement, Exercise, ExtraActivity, MetaRow, Profile, ProgressPhoto, Routine, ScheduleOverride, Session, Swim,
-  WeeklyReview, WeighIn,
+  WeeklyReview, WeighIn, DailyLog,
 } from './types';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export class FormaDB extends Dexie {
   profile!: EntityTable<Profile, 'id'>;
@@ -19,6 +19,7 @@ export class FormaDB extends Dexie {
   schedule!: EntityTable<ScheduleOverride, 'date'>;
   activities!: EntityTable<ExtraActivity, 'id'>;
   weeklyReviews!: EntityTable<WeeklyReview, 'week'>;
+  dailyLogs!: EntityTable<DailyLog, 'date'>;
 
   constructor() {
     super('forma');
@@ -36,6 +37,8 @@ export class FormaDB extends Dexie {
     this.version(2).stores({ swims: 'id, date' });
     // v3: pla setmanal, activitats extra i revisions setmanals (les dades existents es mantenen)
     this.version(3).stores({ schedule: 'date', activities: 'id, date', weeklyReviews: 'week' });
+    // v4: registre diari d'hàbits (berenar, alcohol, passos)
+    this.version(4).stores({ dailyLogs: 'date' });
   }
 }
 

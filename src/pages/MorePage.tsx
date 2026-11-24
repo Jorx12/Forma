@@ -1,9 +1,11 @@
-import { CalendarDays, ChevronRight, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User } from 'lucide-react';
+import { BarChart3, CalendarDays, Smartphone as Phone2, ChevronRight, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User } from 'lucide-react';
 import { Link } from 'react-router';
 import { Page } from '../components/ui';
 
 const ITEMS = [
   { to: '/revisio', icon: ClipboardCheck, label: 'Revisió setmanal', sub: 'Cada dilluns: pes, cintura, sessions, berenars, alcohol' },
+  { to: '/resum', icon: BarChart3, label: 'Resum mensual', sub: 'El mes en una imatge per desar o compartir' },
+  { to: '/mes/dreceres', icon: Phone2, label: 'Dreceres de l\'iPhone', sub: 'Passos i pes des de l\'app Salut' },
   { to: '/mes/setmana', icon: CalendarDays, label: 'Setmana tipus', sub: 'Què toca cada dia' },
   { to: '/mes/alimentacio', icon: Salad, label: 'Alimentació', sub: 'Plat de referència, berenars i 80/20' },
   { to: '/mes/perfil', icon: User, label: 'Perfil', sub: 'Dades, fites i preferències' },
