@@ -81,19 +81,19 @@ export function TrainPage() {
   return (
     <Page title="Entrenar">
       {adaptation && (
-        <Notice tone="info"><strong>Fase d'adaptació</strong> (primeres {profile.adaptationWeeks} setmanes): deixa unes 3 repeticions de marge a cada sèrie (RIR 3). Tornes després de gairebé un any: avui toca sumar, no apurar.</Notice>
+        <Notice tone="info">Adaptació: deixa 3 repeticions de marge a cada sèrie.</Notice>
       )}
-      {dl.due && !dl.current && (
+      {dl.due && !dl.current && !routine?.fixed && (
         <Notice tone="warn">Portes {dl.weeks} setmanes seguides entrenant. És un bon moment per fer una <strong>setmana de descàrrega</strong>.</Notice>
       )}
-      {comeback && <Notice tone="info"><strong>Tornada:</strong> encara que siguin 30 min. L'important és tornar a començar.</Notice>}
-      <Card title="Sessió">
+      {comeback && <Notice tone="info">Tornada: encara que siguin 30 minuts.</Notice>}
+      <Card>
         <Segmented value={chosen} onChange={(v) => setDay(v)} options={keys.map((k) => ({ value: k, label: <span>{k === 'H' ? 'Hotel' : `Força ${k}`}{k === proposed && ' ·'}</span> }))} />
-        <p className="mt-2 text-xs text-muted">Proposada: {dayLabel(proposed, routine.days)}{todayKey ? ' (és la que toca avui)' : ''}{lastDone && ` · l'última va ser ${dayLabel(lastDone.dayKey, routine.days)}, ${fmtDate(lastDone.startedAt.slice(0, 10))}`}</p>
+        {lastDone && <p className="mt-2 text-xs text-muted">Última: {dayLabel(lastDone.dayKey, routine.days)}, {fmtDate(lastDone.startedAt.slice(0, 10), 'EEE d MMM')}</p>}
       </Card>
       {circuit ? (
         <Card title={`${dayLabel(chosen, routine.days)} · ≈${plan.totalMin} min`}>
-          <p className="mb-2 text-sm text-muted">{Math.max(...all.map((i) => i.sets))} voltes seguides, amb poc descans entre exercicis. Sense material: una cadira, el terra i una motxilla.</p>
+          <p className="mb-3 text-sm text-muted">{Math.max(...all.map((i) => i.sets))} voltes · cadira, terra i motxilla</p>
           <ol className="space-y-1.5">
             {all.map((it, i) => (
               <li key={i} className="flex justify-between gap-2 text-sm">
@@ -104,7 +104,7 @@ export function TrainPage() {
           </ol>
         </Card>
       ) : (
-      <Card title="Temps disponible avui">
+      <Card title="Temps disponible">
         <Stepper value={mins} onChange={setMinutes} step={5} min={comeback ? 30 : MIN_MINUTES} max={MAX_MINUTES} unit="min" />
         <div className="mt-2 flex flex-wrap gap-1.5">
           {(comeback ? [30, 45, 60, 75] : [40, 60, 70, 75, 90]).map((m) => (
@@ -120,12 +120,11 @@ export function TrainPage() {
             <div className="text-[11px] text-muted">{withCardio ? 'Cardio' : 'Sense cardio'}</div>
           </button>
         </div>
-        <p className="mt-2 flex items-center gap-1.5 text-sm"><Clock size={16} className="text-muted" />
-          <span>Total <strong>≈{durationLabel(plan.totalMin)}</strong>{skipped > 0 && <span className="text-muted"> · {skipped} ex. es queden fora</span>}</span>
+        <p className="mt-3 flex items-center gap-1.5 text-sm text-muted"><Clock size={15} />
+          <span>≈{durationLabel(plan.totalMin)}{skipped > 0 && ` · ${skipped} ex. fora`}{plan.cardio && ` · ${machineLabel(plan.cardio.machine).toLowerCase()}${isContinuous(plan.cardio) ? '' : `, ${protocolById(plan.cardio.protocolId).label}`}`}</span>
         </p>
-        {plan.cardio && <p className="mt-1 text-xs text-muted">Cardio: {plan.cardio.plannedMin}' de {machineLabel(plan.cardio.machine).toLowerCase()} · {protocolById(plan.cardio.protocolId).label}{isContinuous(plan.cardio) ? '' : ` × ${plan.cardio.rounds}`}{plan.cardio.plannedMin === 10 ? ' (10 min les 4 primeres setmanes)' : ''}. Toca el requadre per treure'l avui.</p>}
-        {plan.cardio && <p className="mt-1 text-xs text-warn">⚠️ {CARDIO_WARNING}</p>}
-        <ol className="mt-3 space-y-1.5">
+        {plan.cardio && <p className="mt-1 text-xs text-warn">{CARDIO_WARNING.split('.')[0]}.</p>}
+        <ol className="mt-4 space-y-2 border-t border-line pt-4">
           {fit.items.map((it, i) => (
             <li key={i} className="flex justify-between gap-2 text-sm">
               <span>{i + 1}. {byId.get(it.exerciseId)?.name ?? '—'}</span>
@@ -133,7 +132,7 @@ export function TrainPage() {
             </li>
           ))}
         </ol>
-        {profile.deloadEveryWeeks && (
+        {profile.deloadEveryWeeks && !routine.fixed && (
           <label className="mt-4 flex items-center gap-3 text-sm">
             <input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={deloadOn} onChange={(e) => setDeload(e.target.checked)} />
             Sessió de descàrrega (menys sèries i ~10 % menys de pes) {dl.due && <Badge tone="warn">suggerida</Badge>}
@@ -141,7 +140,7 @@ export function TrainPage() {
         )}
       </Card>
       )}
-      <Button variant="primary" size="lg" className="h-20 w-full text-xl" onClick={async () => {
+      <Button variant="primary" size="lg" className="w-full" onClick={async () => {
         unlockAudio();
         await startSession({ day: chosen, deload: deloadOn && !circuit, minutes: mins, cardioOn: withCardio && !circuit, comeback });
         nav('/entrenar/sessio');

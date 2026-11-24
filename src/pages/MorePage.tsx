@@ -1,37 +1,70 @@
-import { BarChart3, CalendarDays, Smartphone as Phone2, ChevronRight, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User } from 'lucide-react';
-import { Link } from 'react-router';
-import { Page } from '../components/ui';
+import clsx from 'clsx';
+import { BarChart3, CalendarDays, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User, Zap } from 'lucide-react';
+import { Card, Page, Row } from '../components/ui';
+import { useProfile, useSessions, useWeighIns } from '../db/hooks';
+import { setChristmas, setTravel } from '../lib/schedule';
+import { analyzeWeight } from '../lib/weight';
 
-const ITEMS = [
-  { to: '/revisio', icon: ClipboardCheck, label: 'Revisió setmanal', sub: 'Cada dilluns: pes, cintura, sessions, berenars, alcohol' },
-  { to: '/resum', icon: BarChart3, label: 'Resum mensual', sub: 'El mes en una imatge per desar o compartir' },
-  { to: '/mes/dreceres', icon: Phone2, label: 'Dreceres de l\'iPhone', sub: 'Passos i pes des de l\'app Salut' },
-  { to: '/mes/setmana', icon: CalendarDays, label: 'Setmana tipus', sub: 'Què toca cada dia' },
-  { to: '/mes/alimentacio', icon: Salad, label: 'Alimentació', sub: 'Plat de referència, berenars i 80/20' },
-  { to: '/mes/perfil', icon: User, label: 'Perfil', sub: 'Dades, fites i preferències' },
-  { to: '/mes/calories', icon: Flame, label: 'Referència calòrica', sub: 'Només informativa' },
-  { to: '/mes/rutina', icon: ClipboardList, label: 'Rutines', sub: 'Força A, Força B i hotel' },
-  { to: '/mes/maquines', icon: Dumbbell, label: 'Màquines', sub: 'Catàleg i preferències' },
-  { to: '/mes/dades', icon: Database, label: 'Dades', sub: 'Còpia de seguretat i dades de prova' },
-  { to: '/mes/installar', icon: Smartphone, label: "Instal·lar l'app", sub: 'Afegir a la pantalla d\'inici' },
+const GROUPS = [
+  { title: 'Seguiment', items: [
+    { to: '/revisio', icon: ClipboardCheck, label: 'Revisió setmanal' },
+    { to: '/resum', icon: BarChart3, label: 'Resum mensual' },
+  ] },
+  { title: 'Pla', items: [
+    { to: '/mes/setmana', icon: CalendarDays, label: 'Setmana tipus' },
+    { to: '/mes/rutina', icon: ClipboardList, label: 'Rutines' },
+    { to: '/mes/maquines', icon: Dumbbell, label: 'Màquines' },
+    { to: '/mes/alimentacio', icon: Salad, label: 'Alimentació' },
+  ] },
+  { title: 'Configuració', items: [
+    { to: '/mes/perfil', icon: User, label: 'Perfil' },
+    { to: '/mes/calories', icon: Flame, label: 'Referència calòrica' },
+    { to: '/mes/dreceres', icon: Zap, label: "Dreceres de l'iPhone" },
+    { to: '/mes/dades', icon: Database, label: 'Dades i còpies' },
+    { to: '/mes/installar', icon: Smartphone, label: "Instal·lar l'app" },
+  ] },
 ];
 
 export function MorePage() {
   return (
     <Page title="Més">
-      <nav className="overflow-hidden rounded-2xl border border-line bg-surface">
-        {ITEMS.map(({ to, icon: Icon, label, sub }) => (
-          <Link key={to} to={to} className="flex items-center gap-3 border-b border-line px-4 py-3.5 last:border-0 active:bg-surface-2">
-            <Icon size={22} className="text-accent" />
-            <div className="flex-1">
-              <div className="font-semibold">{label}</div>
-              <div className="text-xs text-muted">{sub}</div>
-            </div>
-            <ChevronRight size={18} className="text-muted" />
-          </Link>
-        ))}
-      </nav>
-      <p className="text-center text-xs text-muted">Forma · totes les dades es guarden només en aquest dispositiu.</p>
+      <ModesCard />
+      {GROUPS.map((g) => (
+        <Card key={g.title} title={g.title} className="py-3">
+          <div className="-mt-2 divide-y divide-line">
+            {g.items.map(({ to, icon: Icon, label }) => <Row key={to} to={to} icon={<Icon size={18} />} label={label} />)}
+          </div>
+        </Card>
+      ))}
+      <p className="pt-2 text-center text-xs text-muted">Les dades només es guarden en aquest dispositiu.</p>
     </Page>
+  );
+}
+
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button role="switch" aria-checked={on} onClick={() => onChange(!on)}
+      className={clsx('relative h-7 w-12 shrink-0 rounded-full border border-line transition', on ? 'bg-accent' : 'bg-surface-2')}>
+      <span className={clsx('absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow transition-all', on ? 'left-[22px]' : 'left-0.5')} />
+    </button>
+  );
+}
+
+function ModesCard() {
+  const profile = useProfile();
+  const sessions = useSessions();
+  const weighIns = useWeighIns();
+  if (!profile || !sessions || !weighIns) return null;
+  const m = profile.modes;
+  const current = analyzeWeight(profile, weighIns).current;
+  return (
+    <Card title="Modes" className="py-3">
+      <div className="-mt-2 divide-y divide-line">
+        <Row icon={<span>🧳</span>} label="Viatge" sub="Sessions = rutina d'hotel"
+          right={<Toggle on={!!m?.travel.active} onChange={(v) => setTravel(v, profile, sessions)} />} />
+        <Row icon={<span>🎄</span>} label="Nadal" sub="Objectiu: mantenir el pes"
+          right={<Toggle on={!!m?.christmas.active} onChange={(v) => setChristmas(v, profile, current)} />} />
+      </div>
+    </Card>
   );
 }

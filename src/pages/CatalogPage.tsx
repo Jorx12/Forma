@@ -5,13 +5,12 @@ import { FOOT_LABEL, MUSCLE_LABEL, MUSCLE_ORDER, PATTERN_LABEL, POSITION_LABEL }
 import { db, uid } from '../db/db';
 import { useExercises } from '../db/hooks';
 import type { Exercise, FootImpact, MuscleGroup, Pattern, Position, Preference } from '../db/types';
-import { ExerciseBadges } from '../components/ExerciseBadges';
-import { Button, Card, Field, inputCls, Notice, Page, Segmented, Sheet } from '../components/ui';
+import { Button, Card, Field, inputCls, Page, Segmented, Sheet } from '../components/ui';
 
 export function CatalogPage() {
   const exercises = useExercises();
   const [q, setQ] = useState('');
-  const [onlyMine, setOnlyMine] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(true);
   const [edit, setEdit] = useState<Exercise | 'new' | null>(null);
 
   const groups = useMemo(() => {
@@ -33,7 +32,6 @@ export function CatalogPage() {
       </div>
       <Segmented value={onlyMine ? 'mine' : 'all'} onChange={(v) => setOnlyMine(v === 'mine')}
         options={[{ value: 'all', label: `Totes (${exercises.length})` }, { value: 'mine', label: `Les tinc (${count})` }]} />
-      <Notice tone="info">Marca les màquines que tens al gimnàs (✓) i les que t'agraden o no. El generador de rutines ho fa servir.</Notice>
 
       {groups.map(({ g, items }) => (
         <Card key={g} title={MUSCLE_LABEL[g]}>
@@ -52,23 +50,19 @@ export function CatalogPage() {
 
 function ExerciseRow({ e, onOpen }: { e: Exercise; onOpen: () => void }) {
   const setPref = (p: Preference) => db.exercises.update(e.id, { preference: e.preference === p ? 'neutral' : p });
+  const foot = e.footImpact === 'alt' ? 'peu: alt ⚠️' : e.footImpact === 'mitja' ? 'peu: mitjà' : 'peu: baix';
   return (
     <li className="flex items-center gap-2 py-2.5">
-      <button
-        aria-label={e.available ? 'La tinc' : 'No la tinc'}
-        onClick={() => db.exercises.update(e.id, { available: !e.available })}
-        className={clsx('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 text-lg font-bold',
-          e.available ? 'border-accent bg-accent text-accent-ink' : 'border-line text-transparent')}
-      >✓</button>
+      <button aria-label={e.available ? 'La tinc' : 'No la tinc'} onClick={() => db.exercises.update(e.id, { available: !e.available })}
+        className={clsx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm', e.available ? 'border-accent bg-accent text-accent-ink' : 'border-line text-transparent')}>✓</button>
       <button className="min-w-0 flex-1 text-left" onClick={onOpen}>
-        <div className={clsx('truncate font-medium', !e.available && 'text-muted')}>{e.name}{e.isCustom && <span className="ml-1 text-xs text-info">· pròpia</span>}</div>
-        <ExerciseBadges e={e} />
-        {e.note && <div className="mt-0.5 truncate text-xs text-muted">📝 {e.note}</div>}
+        <div className={clsx('truncate text-[15px] font-medium', !e.available && 'text-muted')}>{e.name}</div>
+        <div className={clsx('truncate text-xs', e.footImpact === 'alt' ? 'text-warn' : 'text-muted')}>{POSITION_LABEL[e.position]} · {foot}{e.isCustom ? ' · pròpia' : ''}{e.note ? ` · ${e.note}` : ''}</div>
       </button>
       <button aria-label="M'agrada" onClick={() => setPref('like')}
-        className={clsx('flex h-10 w-10 items-center justify-center rounded-xl', e.preference === 'like' ? 'bg-accent/20 text-accent' : 'text-muted')}><ThumbsUp size={18} /></button>
+        className={clsx('flex h-9 w-9 items-center justify-center rounded-full', e.preference === 'like' ? 'bg-accent/15 text-accent' : 'text-muted/60')}><ThumbsUp size={16} /></button>
       <button aria-label="No m'agrada" onClick={() => setPref('dislike')}
-        className={clsx('flex h-10 w-10 items-center justify-center rounded-xl', e.preference === 'dislike' ? 'bg-danger/20 text-danger' : 'text-muted')}><ThumbsDown size={18} /></button>
+        className={clsx('flex h-9 w-9 items-center justify-center rounded-full', e.preference === 'dislike' ? 'bg-danger/15 text-danger' : 'text-muted/60')}><ThumbsDown size={16} /></button>
     </li>
   );
 }

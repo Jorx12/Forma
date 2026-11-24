@@ -151,7 +151,7 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
     : { ...state, pausedAt: Date.now() });
   const skip = () => setMeta('hiit', { ...state, startedAt: state.startedAt - Math.max(0, left) * 1000 });
 
-  const bg = phase.kind === 'fort' ? 'bg-[#dc2626] text-white' : phase.kind === 'suau' || phase.kind === 'continu' ? 'bg-[#123a5c] text-white' : 'bg-surface text-text';
+  const bg = phase.kind === 'fort' ? 'bg-[#3e1a26] text-[#ffd9df]' : phase.kind === 'suau' || phase.kind === 'continu' ? 'bg-[#122238] text-[#dbe6ff]' : 'bg-bg text-text';
   const next = phases[idx + 1];
 
   return (
@@ -161,8 +161,8 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
         <span className="tabular">{fmtClock(Math.max(0, total - t))} restant</span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center">
-        <div className="text-3xl font-extrabold uppercase tracking-wide">{PHASE_LABEL[phase.kind]}</div>
-        <div className="tabular text-[7rem] leading-none font-black">{paused ? '❚❚' : fmtClock(left)}</div>
+        <div className="text-2xl font-semibold uppercase tracking-[0.2em] opacity-80">{PHASE_LABEL[phase.kind]}</div>
+        <div className="tabular text-[6.5rem] leading-none font-semibold tracking-tight">{paused ? '❚❚' : fmtClock(left)}</div>
         {phase.round > 0 && phase.kind !== 'calma' && <div className="text-xl font-semibold">Ronda {phase.round} / {cardio.rounds}</div>}
         {next && <div className="mt-2 text-sm opacity-75">Després: {PHASE_LABEL[next.kind].toLowerCase()} {next.end - next.start}"</div>}
       </div>
@@ -170,11 +170,11 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
         <div className="h-full bg-current opacity-60" style={{ width: `${Math.min(100, (t / total) * 100)}%` }} />
       </div>
       <div className="grid grid-cols-3 gap-2 px-5 pb-5">
-        <button onClick={togglePause} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold">
+        <button onClick={togglePause} className="flex h-16 flex-col items-center justify-center rounded-[22px] bg-white/8 text-sm font-medium backdrop-blur">
           {paused ? <Play /> : <Pause />}{paused ? 'Continuar' : 'Pausa'}
         </button>
-        <button onClick={skip} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold"><SkipForward />Saltar</button>
-        <button onClick={() => { if (confirm('Acabar el cardio ara?')) finish(roundsDone(), t); }} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold"><Square />Acabar</button>
+        <button onClick={skip} className="flex h-16 flex-col items-center justify-center rounded-[22px] bg-white/8 text-sm font-medium backdrop-blur"><SkipForward />Saltar</button>
+        <button onClick={() => { if (confirm('Acabar el cardio ara?')) finish(roundsDone(), t); }} className="flex h-16 flex-col items-center justify-center rounded-[22px] bg-white/8 text-sm font-medium backdrop-blur"><Square />Acabar</button>
       </div>
     </div>
   );

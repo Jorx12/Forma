@@ -1,7 +1,7 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, ReferenceLine } from 'recharts';
 import { fmtDate, fromDayNum } from '../lib/dates';
 
-const tooltipStyle = { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text)' };
+const tooltipStyle = { background: 'var(--surface-solid)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text)' };
 
 export function MetricLine({ data, unit, color = 'var(--accent)', height = 180 }: { data: { x: number; y: number }[]; unit: string; color?: string; height?: number }) {
   return (

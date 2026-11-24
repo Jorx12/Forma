@@ -5,7 +5,7 @@ import { db, uid } from '../db/db';
 import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
-import { Badge, Button, Card, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
+import { Button, Card, Disclosure, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
 import { CARDIO_ALLOWED, CARDIO_MACHINES, CARDIO_WARNING, HIIT_PROTOCOLS } from '../data/cardio';
 import { dayLabel, personalRoutine } from '../data/plan';
 import { durationLabel, type SessionPlan, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
@@ -79,63 +79,58 @@ export function RoutinePage() {
             <Stepper value={mins} step={5} min={MIN_MINUTES} max={MAX_MINUTES} unit="min"
               onChange={(v) => db.profile.update('me', { sessionMinutes: v })} />
             <StructureSummary profile={profile} plan={planSession(routine.days[0]?.items ?? [], mins, byId, profile, planOpts(routine.days[0]))} />
-            <p className="mt-2 text-xs text-muted">
-              {routine.fixed
-                ? "El pla és fix: es fan els exercicis i les sèries que hi ha a cada rutina. Si un dia tens menys temps, s'escurcen descansos i sèries (començant pels últims)."
-                : "Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 4–5), i s'ajusten les sèries i els descansos."}
-            </p>
           </Card>
-          <CardioSettings profile={profile} />
-          {!routine.fixed && <p className="text-sm text-muted">Base: 3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>}
           {routine.days.map((d) => { const plan = planSession(d.items, mins, byId, profile, planOpts(d)); const fit = plan.strength; return (
-            <Card key={d.key} title={`${dayLabel(d.key, routine.days)} · ${d.circuit ? `${Math.max(0, ...d.items.map((i) => i.sets))} voltes · ≈${fit.minutes} min` : `força ≈${durationLabel(fit.minutes)}`}`}
-              right={<Button size="sm" variant="ghost" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir</Button>}>
-              <ol className="divide-y divide-line">
+            <Card key={d.key} title={dayLabel(d.key, routine.days)}
+              right={<span className="text-xs text-muted">{d.circuit ? `${Math.max(0, ...d.items.map((i) => i.sets))} voltes · ` : ''}≈{fit.minutes} min</span>}>
+              <ol className="-mt-1 divide-y divide-line">
                 {d.items.map((it, i) => {
                   const e = byId.get(it.exerciseId);
                   const fi = fit.included.indexOf(i);
                   const fitted = fi === -1 ? null : fit.items[fi];
+                  const u = e?.measure === 'seconds' ? ' s' : '';
+                  const r = it.repMin === it.repMax ? `${it.repMin}${u}` : `${it.repMin}–${it.repMax}${u}`;
                   return (
-                    <li key={`${it.exerciseId}-${i}`} className={`py-2.5 ${fitted ? '' : 'opacity-50'}`}>
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 w-5 text-sm text-muted">{i + 1}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium">{e?.name ?? 'Exercici esborrat'}</div>
-                          <div className="text-sm text-muted">
-                            {(() => { const u = e?.measure === 'seconds' ? ' s' : ''; const r = it.repMin === it.repMax ? `${it.repMin}${u}` : `${it.repMin}–${it.repMax}${u}`;
-                              return fitted ? `${fitted.sets} × ${r} · descans ${fitted.restSec} s` : `Només en dies més llargs · ${it.sets} × ${r}`; })()}
-                          </div>
-                          {it.altIds?.length ? <div className="text-xs text-info">o bé: {it.altIds.map((id) => byId.get(id)?.name ?? id).join(', ')}</div> : null}
-                          {e && <ExerciseBadges e={e} pattern={false} />}
-                          <div className="mt-1"><Badge tone="info">{PATTERN_LABEL[it.slot]}</Badge></div>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex justify-end gap-1">
-                        <IconBtn label="Pujar" disabled={i === 0} onClick={() => update((r) => { const a = dayItems(r, d.key); [a[i - 1], a[i]] = [a[i], a[i - 1]]; })}><ArrowUp size={18} /></IconBtn>
-                        <IconBtn label="Baixar" disabled={i === d.items.length - 1} onClick={() => update((r) => { const a = dayItems(r, d.key); [a[i + 1], a[i]] = [a[i], a[i + 1]]; })}><ArrowDown size={18} /></IconBtn>
-                        <IconBtn label="Editar" onClick={() => setSheet({ kind: 'edit', day: d.key, idx: i })}><Pencil size={18} /></IconBtn>
-                        <IconBtn label="Substituir" onClick={() => setSheet({ kind: 'swap', day: d.key, idx: i })}><Replace size={18} /></IconBtn>
-                        <IconBtn label="Treure" onClick={() => { if (confirm('Treure aquest exercici del dia?')) update((r) => { dayItems(r, d.key).splice(i, 1); }); }}><Trash2 size={18} /></IconBtn>
-                      </div>
+                    <li key={`${it.exerciseId}-${i}`} className={fitted ? '' : 'opacity-45'}>
+                      <button className="flex w-full items-center gap-3 py-3 text-left active:opacity-70" onClick={() => setSheet({ kind: 'edit', day: d.key, idx: i })}>
+                        <span className="w-4 text-xs text-muted">{i + 1}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[15px] font-medium">{e?.name ?? 'Exercici esborrat'}{e?.footImpact === 'alt' && ' ⚠️'}</span>
+                          <span className="block text-xs text-muted">{fitted ? `${fitted.sets} × ${r} · ${fitted.restSec} s` : `Dies llargs · ${it.sets} × ${r}`}{it.altIds?.length ? ` · o ${it.altIds.map((id) => byId.get(id)?.name ?? id).join(', ')}` : ''}</span>
+                        </span>
+                        <Pencil size={15} className="text-muted" />
+                      </button>
                     </li>
                   );
                 })}
               </ol>
-              <Coverage items={fit.items} />
+              <button className="mt-1 flex items-center gap-1.5 text-sm font-medium text-muted" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir exercici</button>
             </Card>
           ); })}
+          <CardioSettings profile={profile} />
           {!routine.fixed && <WeeklyBalance days={routine.days.map((d) => planSession(d.items, mins, byId, profile, planOpts(d)).strength.items)} minutes={mins} />}
         </>
       )}
 
-      <Card title="Escalfament (checklist)">
-        <ul className="list-disc space-y-1 pl-5 text-sm">{WARMUP.map((w) => <li key={w.id}>{w.label}</li>)}</ul>
+      <Card>
+        <Disclosure label="Escalfament">
+          <ul className="space-y-1.5 text-sm text-muted">{WARMUP.map((w) => <li key={w.id}>· {w.label}</li>)}</ul>
+        </Disclosure>
       </Card>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)}
-        title={sheet?.kind === 'swap' ? 'Substituir exercici' : sheet?.kind === 'edit' ? 'Editar exercici' : 'Afegir exercici'}>
+        title={sheet?.kind === 'swap' ? 'Substituir' : sheet?.kind === 'edit' ? 'Exercici' : 'Afegir exercici'}>
         {sheet && routine && (sheet.kind === 'edit' ? (
-          <ItemEditor item={dayItems(routine, sheet.day)[sheet.idx]} onSave={async (it) => { await update((r) => { dayItems(r, sheet.day)[sheet.idx] = it; }); setSheet(null); }} />
+          <>
+            <p className="-mt-2 mb-4 font-medium">{byId.get(dayItems(routine, sheet.day)[sheet.idx].exerciseId)?.name}</p>
+            <ItemEditor item={dayItems(routine, sheet.day)[sheet.idx]} onSave={async (it) => { await update((r) => { dayItems(r, sheet.day)[sheet.idx] = it; }); setSheet(null); }} />
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              <Button size="sm" onClick={() => setSheet({ kind: 'swap', day: sheet.day, idx: sheet.idx })}><Replace size={16} /></Button>
+              <Button size="sm" disabled={sheet.idx === 0} onClick={async () => { await update((r) => { const a = dayItems(r, sheet.day); [a[sheet.idx - 1], a[sheet.idx]] = [a[sheet.idx], a[sheet.idx - 1]]; }); setSheet({ ...sheet, idx: sheet.idx - 1 }); }}><ArrowUp size={16} /></Button>
+              <Button size="sm" disabled={sheet.idx >= dayItems(routine, sheet.day).length - 1} onClick={async () => { await update((r) => { const a = dayItems(r, sheet.day); [a[sheet.idx + 1], a[sheet.idx]] = [a[sheet.idx], a[sheet.idx + 1]]; }); setSheet({ ...sheet, idx: sheet.idx + 1 }); }}><ArrowDown size={16} /></Button>
+              <Button size="sm" variant="danger" onClick={async () => { if (!confirm('Treure aquest exercici?')) return; await update((r) => { dayItems(r, sheet.day).splice(sheet.idx, 1); }); setSheet(null); }}><Trash2 size={16} /></Button>
+            </div>
+          </>
         ) : (
           <ExercisePicker
             exercises={exercises} profile={profile}
@@ -156,23 +151,6 @@ export function RoutinePage() {
         ))}
       </Sheet>
     </Page>
-  );
-}
-
-function IconBtn({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <button aria-label={label} title={label} disabled={disabled} onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-muted active:bg-line disabled:opacity-30">{children}</button>
-  );
-}
-
-function Coverage({ items }: { items: RoutineItem[] }) {
-  const has = new Set(items.map((i) => i.slot));
-  const basics = ['push_h', 'push_v', 'pull_h', 'pull_v', 'knee', 'hip'] as const;
-  return (
-    <div className="mt-3 flex flex-wrap gap-1">
-      {basics.map((p) => <Badge key={p} tone={has.has(p) ? 'accent' : 'muted'}>{has.has(p) ? '✓' : '·'} {PATTERN_SHORT[p]}</Badge>)}
-    </div>
   );
 }
 
@@ -258,34 +236,21 @@ function CardioSettings({ profile }: { profile: Profile }) {
   const c = profile.cardio ?? { enabled: true, machine: 'bici' as const, protocolId: 'continu' };
   const set = (patch: Partial<typeof c>) => db.profile.update('me', { cardio: { ...c, ...patch } });
   return (
-    <Card title="Cardio després de la força">
-      <Segmented value={c.enabled ? 'si' : 'no'} onChange={(v) => set({ enabled: v === 'si' })} options={[{ value: 'si', label: 'Sí, per defecte' }, { value: 'no', label: 'No' }]} />
-      {c.enabled && (
-        <div className="mt-3 space-y-3">
-          <Field label="Màquina preferida">
-            <div className="grid grid-cols-3 gap-1.5">
-              {CARDIO_MACHINES.filter((m) => CARDIO_ALLOWED.includes(m.id)).map((m) => (
-                <button key={m.id} onClick={() => set({ machine: m.id })}
-                  className={`min-h-11 rounded-xl px-2 text-sm font-medium ${c.machine === m.id ? 'bg-accent text-accent-ink' : 'bg-surface-2'}`}>
-                  {m.label}{m.foot !== 'baix' && ' ⚠️'}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Tipus">
-            <div className="space-y-1.5">
-              {HIIT_PROTOCOLS.map((p) => (
-                <button key={p.id} onClick={() => set({ protocolId: p.id })}
-                  className={`flex h-11 w-full items-center justify-between rounded-xl px-3 text-sm ${c.protocolId === p.id ? 'bg-accent text-accent-ink' : 'bg-surface-2'}`}>
-                  <span className="font-medium">{p.label}</span><span className="text-xs opacity-80">{p.level}</span>
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Notice tone="warn">⚠️ {CARDIO_WARNING}</Notice>
-          <p className="text-xs text-muted">Durada: 10 min les 4 primeres setmanes del pla; després 15–20 min segons el temps del dia.</p>
+    <Card title="Cardio després de la força" right={
+      <button role="switch" aria-checked={c.enabled} onClick={() => set({ enabled: !c.enabled })}
+        className={`relative h-7 w-12 rounded-full border border-line transition ${c.enabled ? 'bg-accent' : 'bg-surface-2'}`}>
+        <span className={`absolute top-0.5 h-[22px] w-[22px] rounded-full bg-white shadow transition-all ${c.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+      </button>}>
+      {c.enabled ? (
+        <div className="space-y-3">
+          <Segmented value={c.machine} onChange={(v) => set({ machine: v })}
+            options={CARDIO_MACHINES.filter((m) => CARDIO_ALLOWED.includes(m.id)).map((m) => ({ value: m.id, label: m.label.split(' (')[0].replace('Bici estàtica', 'Bici') }))} />
+          <select className="h-11 w-full rounded-2xl border border-line bg-surface-2 px-4 text-sm" value={c.protocolId} onChange={(e) => set({ protocolId: e.target.value })}>
+            {HIIT_PROTOCOLS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+          <p className="text-xs text-muted">10' les 4 primeres setmanes, després 15–20'. {CARDIO_WARNING.split('.')[0]}.</p>
         </div>
-      )}
+      ) : <p className="text-sm text-muted">Desactivat per defecte.</p>}
     </Card>
   );
 }

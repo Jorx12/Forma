@@ -1,23 +1,24 @@
 import clsx from 'clsx';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowRightLeft, Check, ChevronRight, ClipboardCheck, Play, RotateCcw, Salad, Scale, Target, Waves } from 'lucide-react';
+import { ArrowRightLeft, BarChart3, ChevronRight, ClipboardCheck, Database, Play, Ruler, Scale, Snowflake } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { FeelingPicker, feelingEmoji } from '../components/Feeling';
 import { HabitsCard } from '../components/Habits';
-import { prevMonth } from '../lib/monthly';
-import { Badge, Button, Card, Field, inputCls, Notice, Page, ProgressBar, Segmented, Sheet, Stepper } from '../components/ui';
+import { Button, Card, Field, inputCls, Notice, Page, ProgressBar, Row, Segmented, Sheet, Stepper } from '../components/ui';
 import { ACTIVITY_INFO, isMainActivity, WEEKDAY_SHORT } from '../data/plan';
 import { db, uid } from '../db/db';
 import { useActivities, useDailyLogs, useMeasurements, useMeta, useProfile, useReviews, useSchedule, useSessions, useSwims, useWeighIns } from '../db/hooks';
 import type { ExtraKind, Feeling, Profile, ScheduleOverride } from '../db/types';
 import { daysSinceExport } from '../lib/backup';
 import { addDaysISO, fmtDate, fmtLong, fmtNum, todayISO, weekStartISO } from '../lib/dates';
+import { prevMonth } from '../lib/monthly';
 import { reviewAlerts } from '../lib/review';
 import { anyDone, daysSinceTraining, doneOn, isChristmasSeason, isPlanDone, mainSessionsInWeek, moveActivity, planFor, resetDay, setChristmas, setTravel, weekDates, weekdayOf, type DayPlan } from '../lib/schedule';
 import { fmtMeters } from '../lib/swim';
 import { analyzeWeight, statusLabel, WEIGH_DAYS } from '../lib/weight';
-import { statusTone, TooFastNotice } from './WeightPage';
+import { statusTone } from './WeightPage';
+import { Badge } from '../components/ui';
 
 export const EXTRA_LABEL: Record<ExtraKind, string> = { padel: 'Pàdel', pitch: 'Pitch and putt', caminar: 'Caminar', altre: 'Altre' };
 
@@ -48,122 +49,88 @@ export function TodayPage() {
   const sel = days.find((d) => d.plan.date === selected) ?? { plan: planFor(selected, profile, schedule), done: doneOn(selected, sessions, swims, extras) };
   const weekCount = mainSessionsInWeek(monday, sessions, swims);
   const idle = daysSinceTraining(sessions, swims, today);
-  const weighedToday = weighIns.some((w) => w.date === today);
-  const waistToday = measures.some((m) => m.date === today && m.waistCm != null);
   const prevWeek = addDaysISO(monday, -7);
-  const reviewDone = reviews.some((r) => r.week === prevWeek);
   const goal = reviews.find((r) => r.week === prevWeek)?.nextGoal;
   const hour = new Date().getHours() + new Date().getMinutes() / 60;
-  const xmas = profile.modes?.christmas.active;
-  const travel = profile.modes?.travel.active;
-  const alerts = reviewAlerts(prevWeek, profile, weighIns, measures, sessions, swims, today).filter((x) => x.id === 'inactiu');
+  const xmas = !!profile.modes?.christmas.active;
+  const travel = !!profile.modes?.travel.active;
+  const idleAlert = reviewAlerts(prevWeek, profile, weighIns, measures, sessions, swims, today).some((x) => x.id === 'inactiu');
+  const nextGoal = a.goals.find((g) => !g.reached) ?? a.goals[a.goals.length - 1];
+
+  // Pendents del dia, en una sola llista
+  const pending: { key: string; to?: string; onClick?: () => void; icon: React.ReactNode; label: string; sub?: string }[] = [];
+  if (WEIGH_DAYS.includes(wd) && !weighIns.some((w) => w.date === today)) pending.push({ key: 'pes', to: '/pes', icon: <Scale size={18} />, label: 'Pesar-se', sub: 'Al matí, en dejú' });
+  if (wd === 1 && !measures.some((m) => m.date === today && m.waistCm != null)) pending.push({ key: 'cintura', to: '/pes#cintura', icon: <Ruler size={18} />, label: 'Mesurar la cintura' });
+  if (!reviews.some((r) => r.week === prevWeek)) pending.push({ key: 'revisio', to: '/revisio', icon: <ClipboardCheck size={18} />, label: 'Revisió setmanal', sub: `Setmana del ${fmtDate(prevWeek, 'd MMM')}` });
+  if (hour >= 16.5 && hour < 18 && !logs.find((l) => l.date === today)?.snack) pending.push({ key: 'berenar', to: '/mes/alimentacio', icon: <span>🍎</span>, label: 'Berenar', sub: '17–17.30 h' });
+  if (Number(today.slice(8, 10)) <= 7) pending.push({ key: 'resum', to: `/resum?mes=${prevMonth(today.slice(0, 7))}`, icon: <BarChart3 size={18} />, label: `Resum de ${fmtDate(`${prevMonth(today.slice(0, 7))}-01`, 'MMMM')}` });
+  if (!xmas && isChristmasSeason(today)) pending.push({ key: 'nadal', onClick: () => setChristmas(true, profile, a.current), icon: <Snowflake size={18} />, label: 'Activar el mode Nadal', sub: 'Objectiu: mantenir el pes' });
+  if (sinceExport !== undefined && sinceExport > 14) pending.push({ key: 'copia', to: '/mes/dades', icon: <Database size={18} />, label: 'Fer còpia de seguretat', sub: `Fa ${sinceExport} dies` });
 
   return (
-    <Page title="Avui">
-      <p className="-mt-3 text-sm text-muted">{fmtLong(today)}</p>
-
-      {active && (
-        <Link to="/entrenar/sessio"><Notice tone="ok"><span className="flex items-center gap-2"><RotateCcw size={16} /> Tens un entrenament a mig fer. Toca per continuar.</span></Notice></Link>
-      )}
-      {travel && (
-        <Notice tone="info">
-          🧳 <strong>Mode viatge actiu:</strong> les sessions són la rutina d'hotel (3 cops per setmana).{' '}
-          <button className="font-semibold underline" onClick={async () => {
-            const d = await setTravel(false, profile, sessions);
-            if (d) alert(`Benvingut! ${fmtDate(d, 'EEEE d')} queda marcat com a «Tornada: encara que siguin 30 min».`);
-          }}>Ja he tornat</button>
+    <Page title="Avui" subtitle={<span className="flex flex-wrap items-center gap-2">{fmtLong(today)}{travel && <Badge tone="info">🧳 Viatge</Badge>}{xmas && <Badge tone="info">🎄 Nadal</Badge>}</span>}>
+      {active ? (
+        <Link to="/entrenar/sessio"><Notice tone="ok">Tens un entrenament a mig fer. <strong>Continuar</strong></Notice></Link>
+      ) : idleAlert ? (
+        <Notice tone="danger">
+          Fa {idle} dies que no entrenes. Mai dues setmanes seguides.
+          <button className="mt-1 block font-semibold text-accent" onClick={() => nav('/entrenar?dia=H')}>Fer la rutina d'hotel →</button>
         </Notice>
-      )}
-      {xmas && <Notice tone="info">🎄 <strong>Mode Nadal:</strong> l'objectiu és mantenir el pes. <button className="font-semibold underline" onClick={() => setChristmas(false, profile, a.current)}>Desactivar</button></Notice>}
-      {!xmas && isChristmasSeason(today) && (
-        <Notice tone="info">🎄 És temporada de Nadal. <button className="font-semibold underline" onClick={() => setChristmas(true, profile, a.current)}>Activar el mode Nadal</button> (objectiu: mantenir el pes).</Notice>
-      )}
-      {alerts.map((x) => (
-        <Notice key={x.id} tone="danger">
-          <strong>Fa {idle} dies que no entrenes.</strong> {x.text}
-          <Button size="sm" className="mt-2 w-full" onClick={() => nav('/entrenar?dia=H')}>🧳 Fer la rutina d'hotel ara</Button>
-        </Notice>
-      ))}
-      {a.tooFast && !xmas && <TooFastNotice a={a} />}
+      ) : a.tooFast && !xmas ? (
+        <Notice tone="warn">Baixes més d'1 kg per setmana: menja una mica més.</Notice>
+      ) : null}
 
-      <DayCard plan={sel.plan} done={sel.done} isToday={selected === today} activeSession={!!active}
-        onMove={() => setSheet('move')} onExtra={() => setSheet('extra')} />
+      <DayCard plan={sel.plan} done={sel.done} isToday={selected === today} activeSession={!!active} travel={travel}
+        onMove={() => setSheet('move')} onExtra={() => setSheet('extra')}
+        onBack={async () => { const d = await setTravel(false, profile, sessions); if (d) setSelected(d); }}>
+        <div className="mt-5 border-t border-line pt-4">
+          <div className="mb-2 flex justify-between text-xs text-muted"><span>Setmana</span><span className="tabular">{weekCount}/3</span></div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map(({ plan, done }) => {
+              const ok = isPlanDone(plan, done) || (!isMainActivity(plan.activity) && anyDone(done));
+              const main = isMainActivity(plan.activity);
+              return (
+                <button key={plan.date} onClick={() => setSelected(plan.date)}
+                  className={clsx('flex flex-col items-center gap-1.5 rounded-2xl py-2 transition', plan.date === selected && 'bg-text/10')}>
+                  <span className={clsx('text-[11px] font-medium', plan.date === today ? 'text-accent' : 'text-muted')}>{WEEKDAY_SHORT[weekdayOf(plan.date)]}</span>
+                  <span className={clsx('h-2.5 w-2.5 rounded-full', ok ? 'bg-accent' : main ? 'border-[1.5px] border-text/40' : 'bg-text/10', plan.override && !ok && 'border-info')} />
+                </button>
+              );
+            })}
+          </div>
+          {goal && <p className="mt-3 text-sm text-muted">🎯 {goal}</p>}
+        </div>
+      </DayCard>
 
       {selected <= today && <HabitsCard date={selected} log={logs.find((l) => l.date === selected)} />}
 
-      <Card title={`Setmana · ${weekCount}/3 sessions`}>
-        <div className="grid grid-cols-7 gap-1">
-          {days.map(({ plan, done }) => {
-            const ok = isPlanDone(plan, done) || (!isMainActivity(plan.activity) && anyDone(done));
-            const past = plan.date < today;
-            return (
-              <button key={plan.date} onClick={() => setSelected(plan.date)}
-                className={clsx('flex flex-col items-center gap-0.5 rounded-xl py-2 text-[11px]',
-                  plan.date === selected ? 'bg-accent/15 ring-1 ring-accent' : 'bg-surface-2',
-                  past && !ok && isMainActivity(plan.activity) && 'opacity-60')}>
-                <span className={clsx('font-semibold', plan.date === today && 'text-accent')}>{WEEKDAY_SHORT[weekdayOf(plan.date)]}</span>
-                <span className="text-lg leading-none">{ACTIVITY_INFO[plan.activity].emoji}</span>
-                <span className="h-4">{ok ? <Check size={14} className="text-accent" /> : plan.override ? <ArrowRightLeft size={12} className="text-info" /> : null}</span>
-              </button>
-            );
-          })}
-        </div>
-        <ProgressBar pct={(weekCount / 3) * 100} />
-      </Card>
-
-      {goal && <Card><div className="flex items-start gap-3"><Target className="shrink-0 text-accent" /><div><div className="text-xs text-muted">Objectiu de la setmana</div><div className="font-semibold">{goal}</div></div></div></Card>}
-
-      {WEIGH_DAYS.includes(wd) && !weighedToday && (
-        <Link to="/pes" className="block"><Notice tone="info"><span className="flex items-center gap-2"><Scale size={16} /> Avui toca pesar-se (al matí, en dejú).</span></Notice></Link>
-      )}
-      {wd === 1 && !waistToday && (
-        <Link to="/pes#cintura" className="block"><Notice tone="info">📏 Dilluns: mesura't la cintura.</Notice></Link>
-      )}
-      {(wd === 1 || !reviewDone) && !reviewDone && (
-        <Link to="/revisio" className="block">
-          <Card><div className="flex items-center gap-3"><ClipboardCheck className="text-accent" /><div className="flex-1"><div className="font-semibold">Revisió setmanal</div><div className="text-xs text-muted">Setmana del {fmtDate(prevWeek, 'd MMM')} · 2 minuts</div></div><ChevronRight size={18} className="text-muted" /></div></Card>
-        </Link>
-      )}
-      {Number(today.slice(8, 10)) <= 7 && (
-        <Link to={`/resum?mes=${prevMonth(today.slice(0, 7))}`} className="block">
-          <Notice tone="ok">📊 El resum de {fmtDate(`${prevMonth(today.slice(0, 7))}-01`, 'MMMM')} ja és llest. Toca per veure'l.</Notice>
-        </Link>
-      )}
-      {hour >= 16.5 && hour < 18 && (
-        <Link to="/mes/alimentacio" className="block"><Notice tone="ok">🍎 Hora del berenar (17–17.30 h). Mira les opcions.</Notice></Link>
-      )}
-      {(wd === 6 || wd === 0) && <Link to="/mes/alimentacio" className="block"><Notice tone="info">Cap de setmana: regla 80/20. Gaudeix, però amb el pla de fons.</Notice></Link>}
-      {sinceExport !== undefined && sinceExport > 14 && (
-        <Link to="/mes/dades" className="block text-center text-xs text-warn">Fa {sinceExport} dies que no fas cap còpia de seguretat · Exportar ara</Link>
+      {pending.length > 0 && (
+        <Card title="Pendent" className="py-2">
+          <div className="-mt-2 divide-y divide-line">
+            {pending.map(({ key, ...p }) => <Row key={key} {...p} />)}
+          </div>
+        </Card>
       )}
 
       <Link to="/pes" className="block">
         <Card title="Pes · mitjana setmanal" right={<Badge tone={statusTone(a.status)}>{statusLabel(a)}</Badge>}>
-          <div className="flex items-baseline gap-2">
-            <span className="tabular text-4xl font-bold">{fmtNum(a.current)}</span><span className="text-muted">kg</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="tabular text-[40px] leading-none font-semibold tracking-tight">{fmtNum(a.current)}</span>
+            <span className="text-muted">kg</span>
             {a.weeklyChange !== undefined && (
-              <span className={clsx('ml-auto text-sm', a.weeklyChange <= 0 ? 'text-accent' : 'text-warn')}>{a.weeklyChange > 0 ? '+' : '−'}{fmtNum(Math.abs(a.weeklyChange), 2)} kg vs setm. anterior</span>
+              <span className={clsx('tabular ml-auto text-sm', a.weeklyChange <= 0 ? 'text-accent' : 'text-warn')}>{a.weeklyChange > 0 ? '+' : '−'}{fmtNum(Math.abs(a.weeklyChange), 2)} kg</span>
             )}
           </div>
-          <div className="mt-1 text-xs text-muted">{a.currentWeek ? `Setmana del ${fmtDate(a.currentWeek, 'd MMM')} · ${a.currentN} pesades` : 'Encara sense pesades'}</div>
-          <div className="mt-3 space-y-3">
-            {a.goals.map((g) => (
-              <div key={g.id}>
-                <div className="mb-1 flex justify-between text-sm"><span>Cap a <strong>{g.targetKg} kg</strong></span><span className="tabular text-muted">{g.reached ? 'Assolit ✓' : `${Math.round(g.pct)} % · falten ${fmtNum(g.remainingKg)} kg`}</span></div>
-                <ProgressBar pct={g.pct} />
-              </div>
-            ))}
-          </div>
+          {nextGoal && (
+            <div className="mt-4">
+              <div className="mb-1.5 flex justify-between text-xs text-muted"><span>Cap a {nextGoal.targetKg} kg</span><span className="tabular">{nextGoal.reached ? 'Assolit' : `falten ${fmtNum(nextGoal.remainingKg)} kg`}</span></div>
+              <ProgressBar pct={nextGoal.pct} />
+            </div>
+          )}
         </Card>
       </Link>
 
-      <Link to="/mes/alimentacio" className="block">
-        <Card><div className="flex items-center gap-3"><Salad className="text-accent" /><div className="flex-1"><div className="font-semibold">Alimentació</div><div className="text-xs text-muted">Plat ½ verdura · ¼ proteïna · ¼ hidrats · berenar 17 h</div></div><ChevronRight size={18} className="text-muted" /></div></Card>
-      </Link>
-
-      <ModesCard profile={profile} current={a.current} onTravel={(on) => setTravel(on, profile, sessions)} />
-
-      <Sheet open={sheet === 'move'} onClose={() => setSheet(null)} title={`Moure: ${ACTIVITY_INFO[sel.plan.activity].label}`}>
+      <Sheet open={sheet === 'move'} onClose={() => setSheet(null)} title={`Moure · ${ACTIVITY_INFO[sel.plan.activity].label}`}>
         <MoveList from={sel.plan.date} profile={profile} schedule={schedule} onPick={async (to) => {
           await moveActivity(sel.plan.date, to, profile); setSheet(null); setSelected(to);
         }} onReset={sel.plan.override ? async () => { await resetDay(sel.plan.date); setSheet(null); } : undefined} />
@@ -175,50 +142,56 @@ export function TodayPage() {
   );
 }
 
-function DayCard({ plan, done, isToday, activeSession, onMove, onExtra }: {
-  plan: DayPlan; done: ReturnType<typeof doneOn>; isToday: boolean; activeSession: boolean; onMove: () => void; onExtra: () => void;
+function DayCard({ plan, done, isToday, activeSession, travel, onMove, onExtra, onBack, children }: {
+  plan: DayPlan; done: ReturnType<typeof doneOn>; isToday: boolean; activeSession: boolean; travel: boolean;
+  onMove: () => void; onExtra: () => void; onBack: () => void; children: React.ReactNode;
 }) {
   const nav = useNavigate();
   const info = ACTIVITY_INFO[plan.activity];
   const ok = isPlanDone(plan, done);
   const future = plan.date > todayISO();
   const key = plan.activity === 'forca_A' ? 'A' : plan.activity === 'forca_B' ? 'B' : plan.activity === 'hotel' ? 'H' : null;
+  const tag = plan.comeback ? 'Tornada' : plan.travel ? 'Viatge' : plan.override ? 'Canviat' : null;
+  const doneItems = [
+    ...done.sessions.map((s) => ({ id: s.id, to: `/progres/sessio/${s.id}`, text: `${s.dayKey === 'H' ? "Rutina d'hotel" : `Força ${s.dayKey}`}${s.cardio?.done ? ` + cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}` })),
+    ...done.swims.map((s) => ({ id: s.id, to: '/natacio', text: `Natació ${s.durationMin}' ${feelingEmoji(s.feeling)}${s.distanceM ? ` · ${fmtMeters(s.distanceM)}` : ''}` })),
+    ...done.extras.map((e) => ({ id: e.id, to: undefined, text: `${EXTRA_LABEL[e.kind]} ${e.minutes}' ${feelingEmoji(e.feeling)}` })),
+  ];
 
   return (
-    <Card title={isToday ? 'Toca avui' : fmtDate(plan.date, 'EEEE d MMM')}
-      right={plan.comeback ? <Badge tone="info">Tornada</Badge> : plan.travel ? <Badge tone="info">Viatge</Badge> : plan.override ? <Badge tone="info">Canviat</Badge> : undefined}>
-      <div className="flex items-center gap-3">
-        <span className="text-4xl">{info.emoji}</span>
-        <div className="flex-1">
-          <div className="text-xl font-bold">{info.label}</div>
-          <div className="text-sm text-muted">{plan.comeback ? 'Tornada: encara que siguin 30 min' : info.sub}</div>
-          {plan.override?.movedFrom && <div className="text-xs text-info">Mogut des del {fmtDate(plan.override.movedFrom, 'EEEE d')}</div>}
-          {plan.override?.movedTo && plan.activity === 'descans' && <div className="text-xs text-info">Sessió moguda al {fmtDate(plan.override.movedTo, 'EEEE d')}</div>}
+    <Card>
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span>{isToday ? 'Toca avui' : fmtDate(plan.date, 'EEEE d MMM')}</span>
+        {tag && <Badge tone="info">{tag}</Badge>}
+      </div>
+      <div className="mt-3 flex items-center gap-4">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-surface-2 text-[34px]">{info.emoji}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[22px] leading-tight font-semibold tracking-tight">{info.label}</div>
+          <div className="mt-0.5 text-sm text-muted">{plan.comeback ? 'Encara que siguin 30 min' : ok ? 'Fet ✓' : info.sub}</div>
         </div>
-        {ok && <Check className="text-accent" size={28} />}
       </div>
 
-      {(done.sessions.length > 0 || done.swims.length > 0 || done.extras.length > 0) && (
+      {doneItems.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
-          {done.sessions.map((s) => <li key={s.id}><Link className="text-accent" to={`/progres/sessio/${s.id}`}>✓ {s.dayKey === 'H' ? "Rutina d'hotel" : `Força ${s.dayKey}`}{s.cardio?.done ? ` + cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}</Link></li>)}
-          {done.swims.map((s) => <li key={s.id} className="text-accent">✓ Natació {s.durationMin} min {feelingEmoji(s.feeling)}{s.distanceM ? ` · ${fmtMeters(s.distanceM)}` : ''}</li>)}
-          {done.extras.map((e) => <li key={e.id} className="text-accent">✓ {EXTRA_LABEL[e.kind]} {e.minutes} min {feelingEmoji(e.feeling)}</li>)}
+          {doneItems.map((d) => <li key={d.id}>{d.to ? <Link to={d.to} className="text-accent">✓ {d.text}</Link> : <span className="text-accent">✓ {d.text}</span>}</li>)}
         </ul>
       )}
 
-      {!future && !ok && (
-        <div className="mt-3">
-          {key && !activeSession && <Button variant="primary" size="lg" className="w-full" onClick={() => nav(`/entrenar?dia=${key}${plan.comeback ? '&tornada=1' : ''}`)}><Play /> Començar {info.label.split(' +')[0]}</Button>}
-          {plan.activity === 'natacio' && <Button variant="primary" size="lg" className="w-full" onClick={() => nav(`/natacio?data=${plan.date}`)}><Waves /> Registrar natació</Button>}
+      {!future && !ok && !activeSession && (key || plan.activity === 'natacio' || plan.activity === 'extra') && (
+        <div className="mt-5">
+          {key && <Button variant="primary" size="lg" className="w-full" onClick={() => nav(`/entrenar?dia=${key}${plan.comeback ? '&tornada=1' : ''}`)}><Play size={18} /> Començar</Button>}
+          {plan.activity === 'natacio' && <Button variant="primary" size="lg" className="w-full" onClick={() => nav(`/natacio?data=${plan.date}`)}>Registrar natació</Button>}
           {plan.activity === 'extra' && <Button variant="primary" size="lg" className="w-full" onClick={onExtra}>Registrar activitat</Button>}
-          {plan.activity === 'descans' && <p className="text-sm text-muted">Avui descans. Si et ve de gust, pots fer una activitat extra.</p>}
         </div>
       )}
-      <div className="mt-2 flex gap-2">
-        {plan.activity !== 'descans' && !ok && <Button size="sm" className="flex-1" onClick={onMove}><ArrowRightLeft size={16} /> Moure a un altre dia</Button>}
-        {plan.activity === 'descans' && plan.override && <Button size="sm" className="flex-1" onClick={onMove}>Desfer canvis</Button>}
-        {plan.activity !== 'extra' && !future && <Button size="sm" variant="ghost" onClick={onExtra}>+ Extra</Button>}
+
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-muted">
+        {(plan.activity !== 'descans' || plan.override) && !ok && <button className="flex items-center gap-1.5" onClick={onMove}><ArrowRightLeft size={15} /> {plan.activity === 'descans' ? 'Desfer canvi' : 'Moure'}</button>}
+        {plan.activity !== 'extra' && !future && <button onClick={onExtra}>+ Extra</button>}
+        {travel && isToday && <button className="text-info" onClick={onBack}>Ja he tornat del viatge</button>}
       </div>
+      {children}
     </Card>
   );
 }
@@ -269,22 +242,3 @@ function ExtraForm({ date, onDone }: { date: string; onDone: () => void }) {
     </div>
   );
 }
-
-function ModesCard({ profile, current, onTravel }: { profile: Profile; current: number; onTravel: (on: boolean) => void }) {
-  const m = profile.modes;
-  return (
-    <Card title="Modes">
-      <div className="space-y-3">
-        <label className="flex items-center gap-3">
-          <input type="checkbox" className="h-6 w-6 accent-[var(--accent)]" checked={!!m?.travel.active} onChange={(e) => onTravel(e.target.checked)} />
-          <span className="flex-1"><span className="font-medium">🧳 Viatge</span><span className="block text-xs text-muted">Les sessions passen a ser la rutina d'hotel. En tornar, el primer dia laborable serà «Tornada: encara que siguin 30 min».</span></span>
-        </label>
-        <label className="flex items-center gap-3">
-          <input type="checkbox" className="h-6 w-6 accent-[var(--accent)]" checked={!!m?.christmas.active} onChange={(e) => setChristmas(e.target.checked, profile, current)} />
-          <span className="flex-1"><span className="font-medium">🎄 Nadal</span><span className="block text-xs text-muted">L'objectiu passa a mantenir el pes ({fmtNum(m?.christmas.refKg ?? current)} kg) i no surten avisos per no baixar.</span></span>
-        </label>
-      </div>
-    </Card>
-  );
-}
-

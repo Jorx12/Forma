@@ -65,7 +65,7 @@ export function WeightChart({ profile, weighIns, height = 260 }: { profile: Prof
             <Scatter data={points} dataKey="y" fill="var(--muted)" fillOpacity={0.6} isAnimationActive={false} name="Pesada" />
             <Line data={weekly} dataKey="y" type="monotone" stroke="var(--info)" strokeWidth={2.5} dot={{ r: 3.5, fill: 'var(--info)' }} isAnimationActive={false} name="Mitjana setmanal" />
             <Tooltip cursor={{ stroke: 'var(--line)' }}
-              contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text)' }}
+              contentStyle={{ background: 'var(--surface-solid)', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--text)' }}
               labelFormatter={(v) => fmtDate(fromDayNum(Number(v)))}
               formatter={(v, name) => [Array.isArray(v) ? `${fmtNum(Number(v[0]))}–${fmtNum(Number(v[1]))} kg` : `${fmtNum(Number(v))} kg`, String(name)]} />
           </ComposedChart>

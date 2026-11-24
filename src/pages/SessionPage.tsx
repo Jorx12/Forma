@@ -107,8 +107,8 @@ function SessionView({ session, sessions, exercises, profile, routine, onExit }:
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 pt-safe pb-40">
-      <header className="sticky top-0 z-20 -mx-4 mb-3 flex items-center gap-2 bg-bg/95 px-4 py-2 backdrop-blur">
+    <div className="mx-auto max-w-xl px-5 pt-safe pb-44">
+      <header className="sticky top-0 z-20 -mx-5 mb-4 flex items-center gap-2 bg-bg/50 px-5 pt-3 pb-3 backdrop-blur-xl">
         <div className="flex-1">
           <div className="text-xl font-bold">{dayLabel(session.dayKey, routine?.days)}{session.comeback && <span className="ml-2 align-middle"><Badge tone="info">Tornada</Badge></span>}</div>
           <div className="tabular text-xs text-muted">{fmtClock((now - new Date(session.startedAt).getTime()) / 1000)} · {doneCount}/{totalSets} sèries</div>
@@ -123,7 +123,7 @@ function SessionView({ session, sessions, exercises, profile, routine, onExit }:
         {circuit && <Notice tone="info">Circuit: fes un exercici rere l'altre i repeteix {Math.max(...session.entries.map((e) => e.sets.length))} voltes. En marcar cada exercici, passa al següent.</Notice>}
         {session.flags.deload && <Notice tone="warn">Sessió de descàrrega: menys sèries i pes més baix. Sense apurar.</Notice>}
 
-        <Checklist title={`Escalfament${session.warmupMin ? ` · ${session.warmupMin} min` : ''}`} items={WARMUP} checked={session.checklist.warmup} defaultOpen={!anyDone}
+        <Checklist title={`Escalfament${session.warmupMin ? ` · ${session.warmupMin} min` : ''}`} items={WARMUP} checked={session.checklist.warmup} defaultOpen={false}
           onToggle={(id) => save((s) => { s.checklist.warmup = toggle(s.checklist.warmup, id); })} />
 
         {session.entries.map((entry, ei) => (
@@ -205,7 +205,7 @@ function Checklist({ title, items, checked, onToggle, defaultOpen }: {
   return (
     <Card>
       <button className="flex w-full items-center justify-between" onClick={() => setOpen(!open)}>
-        <span className="font-semibold">{title} <span className="text-sm font-normal text-muted">· {checked.length}/{items.length} (opcional)</span></span>
+        <span className="font-medium">{title} <span className="text-sm font-normal text-muted">· {checked.length}/{items.length}</span></span>
         {open ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
       </button>
       {open && (
@@ -242,7 +242,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
   const active = editing ?? firstPending;
 
   return (
-    <section className={clsx('rounded-2xl border bg-surface', open ? 'border-accent/50' : 'border-line', complete && !open && 'opacity-70')}>
+    <section className={clsx('glass rounded-[24px]', open && 'ring-1 ring-accent/40', complete && !open && 'opacity-60')}>
       <button className="flex w-full items-center gap-3 p-4 text-left" onClick={onToggle}>
         <span className={clsx('flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold', complete ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted')}>
           {complete ? <Check size={18} /> : `${done}/${entry.sets.length}`}
@@ -276,7 +276,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
 
           <ul className="space-y-2">
             {entry.sets.map((s, si) => si === active ? (
-              <li key={si} className="rounded-xl border border-line bg-bg p-3">
+              <li key={si} className="rounded-2xl bg-surface-2 p-4">
                 <div className="mb-2 text-sm font-semibold">Sèrie {si + 1}{s.done && <span className="ml-2 text-xs text-accent">feta · editant</span>}</div>
                 <div className="space-y-2">
                   {showWeight(s.weightKg) ? (
@@ -297,17 +297,17 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
                 )}
               </li>
             ) : (
-              <li key={si} className={clsx('flex items-center gap-2 rounded-xl px-3 py-2', s.done ? 'bg-surface-2' : 'bg-surface-2/40')}>
+              <li key={si} className={clsx('flex items-center gap-2 rounded-2xl px-3 py-2', s.done ? 'bg-surface-2' : 'opacity-60')}>
                 <button className="flex flex-1 items-center gap-3 text-left" onClick={() => setEditing(si)}>
                   <span className="w-6 text-sm text-muted">S{si + 1}</span>
-                  <span className={clsx('tabular font-semibold', !s.done && 'text-muted')}>{fmtSet(s.weightKg, s.reps)}</span>
+                  <span className={clsx('tabular whitespace-nowrap font-semibold', !s.done && 'text-muted')}>{fmtSet(s.weightKg, s.reps)}</span>
                   {s.done && <Check size={16} className="text-accent" />}
                 </button>
                 {s.done && (
-                  <div className="flex gap-1">
+                  <div className="flex shrink-0 gap-0.5">
                     {EFFORTS.map((ef) => (
                       <button key={ef.value} onClick={() => onChange((e) => { e.sets[si].effort = e.sets[si].effort === ef.value ? undefined : ef.value; })}
-                        className={clsx('h-8 rounded-lg px-2 text-xs font-medium', s.effort === ef.value
+                        className={clsx('h-8 rounded-lg px-1.5 text-[11px] font-medium', s.effort === ef.value
                           ? ef.value === 'dur' ? 'bg-danger/20 text-danger' : ef.value === 'facil' ? 'bg-info/20 text-info' : 'bg-accent/20 text-accent'
                           : 'text-muted')}>{ef.label}</button>
                     ))}
@@ -316,8 +316,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
               </li>
             ))}
           </ul>
-          {done > 0 && <p className="text-xs text-muted">Esforç opcional: fàcil ≈ 3+ reps de marge, correcte ≈ 1–2, dur ≈ 0.</p>}
-
+          
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => onChange((e) => { const l = e.sets[e.sets.length - 1]; e.sets.push({ weightKg: l?.weightKg ?? 0, reps: l?.reps ?? e.target.repMin, done: false }); })}><Plus size={16} /> Sèrie</Button>
             <Button size="sm" disabled={!entry.sets.length || entry.sets[entry.sets.length - 1].done} onClick={() => onChange((e) => { e.sets.pop(); })}><Minus size={16} /> Sèrie</Button>

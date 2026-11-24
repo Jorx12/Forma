@@ -27,10 +27,8 @@ export function ProgressPage() {
 
 function History() {
   const sessions = useSessions();
-  const exercises = useExercises();
   const [day, setDay] = useState<DayKey | 'tots'>('tots');
-  if (!sessions || !exercises) return null;
-  const byId = new Map(exercises.map((e) => [e.id, e]));
+  if (!sessions) return null;
   const list = completed(sessions).filter((s) => day === 'tots' || s.dayKey === day);
   return (
     <>
@@ -39,19 +37,19 @@ function History() {
         <ul className="space-y-2">
           {list.map((s) => (
             <li key={s.id}>
-              <Link to={`/progres/sessio/${s.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 active:bg-surface-2">
+              <Link to={`/progres/sessio/${s.id}`} className="glass flex items-center gap-3 rounded-[22px] p-3 active:opacity-80">
                 <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2">
                   <span className="text-lg font-bold leading-none">{s.dayKey === 'H' ? '🧳' : s.dayKey}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold">{fmtDate(s.startedAt.slice(0, 10), "EEE d MMM yyyy")}
+                  <div className="font-medium">{fmtDate(s.startedAt.slice(0, 10), "EEEE d MMM")}
                     {s.flags.deload && <span className="ml-2"><Badge tone="warn">descàrrega</Badge></span>}
-                    {s.isDemo && <span className="ml-2"><Badge>prova</Badge></span>}
+                    
                   </div>
                   <div className="truncate text-xs text-muted">
-                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {sessionSetsDone(s)} sèries · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg{s.cardio?.done ? ` · HIIT ${Math.round(s.cardio.durationSec / 60)}'` : ''}
+                    {s.finishedAt && fmtDuration(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime())} · {sessionSetsDone(s)} sèries · {Math.round(sessionVolume(s)).toLocaleString('ca-ES')} kg{s.cardio?.done ? ` · cardio ${Math.round(s.cardio.durationSec / 60)}'` : ''}
                   </div>
-                  <div className="truncate text-xs text-muted">{s.entries.map((e) => byId.get(e.exerciseId)?.name).filter(Boolean).join(', ')}</div>
+                  
                 </div>
                 <ChevronRight size={18} className="text-muted" />
               </Link>

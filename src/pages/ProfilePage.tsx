@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { db, setMeta } from '../db/db';
 import { useMeta, useProfile } from '../db/hooks';
 import type { Profile } from '../db/types';
-import { Button, Card, Field, inputCls, Page, Segmented } from '../components/ui';
+import { Button, Card, Disclosure, Field, inputCls, Page, Segmented } from '../components/ui';
 
 export function ProfilePage() {
   const stored = useProfile();
@@ -11,6 +11,7 @@ export function ProfilePage() {
   const [saved, setSaved] = useState(false);
   useEffect(() => { if (stored && !p) setP(stored); }, [stored, p]);
   if (!p) return null;
+  const dirty = !!stored && JSON.stringify(stored) !== JSON.stringify(p);
 
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setP({ ...p, [k]: v });
   const num = (v: string) => parseFloat(v.replace(',', '.'));
@@ -50,7 +51,9 @@ export function ProfilePage() {
         </Field>
       </Card>
 
-      <Card title="Fites de pes">
+      <Card title="Ajustos">
+       <div className="space-y-5">
+       <Disclosure label="Fites de pes">
         <div className="space-y-4">
           {p.goals.map((g, i) => (
             <div key={g.id} className="grid grid-cols-3 gap-2">
@@ -59,19 +62,19 @@ export function ProfilePage() {
               <Field label="Fins a"><input type="date" className={inputCls} value={g.dateTo} onChange={(e) => set('goals', p.goals.map((x, j) => j === i ? { ...x, dateTo: e.target.value } : x))} /></Field>
             </div>
           ))}
-          <p className="text-xs text-muted">La línia objectiu passa pel centre de cada finestra de dates.</p>
+          <p className="text-xs text-muted">Les fites mensuals del pla marquen la línia objectiu del gràfic.</p>
         </div>
-      </Card>
+      </Disclosure>
 
-      <Card title="Referència calòrica">
+      <Disclosure label="Referència calòrica">
         <div className="grid grid-cols-3 gap-2">
           <Field label="Factor activitat">{numInput(p.activityFactor, (n) => set('activityFactor', n), '0.05')}</Field>
           <Field label="Dèficit (kcal)">{numInput(p.deficitKcal, (n) => set('deficitKcal', n), '10')}</Field>
           <Field label="Proteïna g/kg">{numInput(p.proteinPerKg, (n) => set('proteinPerKg', n), '0.1')}</Field>
         </div>
-      </Card>
+      </Disclosure>
 
-      <Card title="Entrenament">
+      <Disclosure label="Entrenament">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Increment tren superior (kg)">{numInput(p.defaultIncrementKg.upper, (n) => set('defaultIncrementKg', { ...p.defaultIncrementKg, upper: n }), '0.5')}</Field>
           <Field label="Increment tren inferior (kg)">{numInput(p.defaultIncrementKg.lower, (n) => set('defaultIncrementKg', { ...p.defaultIncrementKg, lower: n }), '0.5')}</Field>
@@ -80,16 +83,19 @@ export function ProfilePage() {
           <Field label="Setmanes d'adaptació">{numInput(p.adaptationWeeks, (n) => set('adaptationWeeks', n))}</Field>
           <Field label="Descàrrega cada (setm.)" hint="0 = desactivat">{numInput(p.deloadEveryWeeks ?? 0, (n) => set('deloadEveryWeeks', n > 0 ? n : null))}</Field>
         </div>
-        <p className="mt-2 text-xs text-muted">Cada màquina pot tenir el seu propi increment al catàleg.</p>
+      </Disclosure>
+       </div>
       </Card>
 
       <Card title="Aparença">
         <Segmented value={theme ?? 'dark'} onChange={(v) => setMeta('theme', v)} options={[{ value: 'dark', label: 'Fosc' }, { value: 'light', label: 'Clar' }]} />
       </Card>
 
-      <div className="sticky bottom-24 z-10">
-        <Button variant="primary" size="lg" className="w-full shadow-lg" onClick={save}>{saved ? 'Desat ✓' : 'Desar perfil'}</Button>
-      </div>
+      {(dirty || saved) && (
+        <div className="fixed inset-x-0 bottom-[92px] z-30 mx-auto max-w-xl px-5">
+          <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Desat ✓' : 'Desar canvis'}</Button>
+        </div>
+      )}
     </Page>
   );
 }

@@ -60,7 +60,7 @@ export function App() {
   useEffect(() => {
     const light = theme === 'light';
     document.documentElement.classList.toggle('light', light);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#f4f5f7' : '#0b0d10');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#eef0f7' : '#090b13');
   }, [theme]);
   return <RouterProvider router={router} />;
 }

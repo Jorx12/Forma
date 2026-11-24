@@ -14,26 +14,25 @@ export function HabitsCard({ date, log }: { date: string; log?: DailyLog }) {
   const isToday = date === todayISO();
   const steps = log?.steps;
   const stepsTone = steps == null ? 'text-muted' : steps >= STEPS_GOAL.min ? 'text-accent' : 'text-warn';
+  const pill = 'flex h-[68px] flex-col items-center justify-center gap-1 rounded-2xl border text-xs font-medium transition';
   return (
-    <Card title={isToday ? 'Hàbits d\'avui' : `Hàbits · ${fmtDate(date, 'EEE d MMM')}`}
-      right={<button className="flex items-center gap-1 text-xs text-info" onClick={() => setPaste(true)}><ClipboardPaste size={14} /> Dreceres</button>}>
+    <Card title={isToday ? 'Hàbits' : `Hàbits · ${fmtDate(date, 'EEE d MMM')}`}
+      right={<button aria-label="Enganxar de Dreceres" className="flex items-center gap-1 text-xs text-muted" onClick={() => setPaste(true)}><ClipboardPaste size={14} /> Salut</button>}>
       <div className="grid grid-cols-3 gap-2">
         <button onClick={() => setLog(date, { snack: !log?.snack })}
-          className={clsx('flex h-20 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium', log?.snack ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted')}>
-          <span className="text-2xl leading-none">🍎</span>{log?.snack ? 'Berenar fet' : 'Berenar?'}
+          className={clsx(pill, log?.snack ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
+          <span className="text-xl leading-none">🍎</span>Berenar
         </button>
         <button onClick={() => setLog(date, { alcohol: log?.alcohol === true ? false : log?.alcohol === false ? undefined : true })}
-          className={clsx('flex h-20 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium',
-            log?.alcohol === true ? 'bg-warn/25 text-warn' : log?.alcohol === false ? 'bg-accent/20 text-accent' : 'bg-surface-2 text-muted')}>
-          <span className="text-2xl leading-none">{log?.alcohol === false ? '💧' : '🍷'}</span>
-          {log?.alcohol === true ? 'Alcohol: sí' : log?.alcohol === false ? 'Sense alcohol' : 'Alcohol?'}
+          className={clsx(pill, log?.alcohol === true ? 'border-warn/40 bg-warn/15 text-warn' : log?.alcohol === false ? 'border-accent/40 bg-accent/15 text-accent' : 'border-line bg-surface-2 text-muted')}>
+          <span className="text-xl leading-none">{log?.alcohol === false ? '💧' : '🍷'}</span>
+          {log?.alcohol === true ? 'Alcohol' : log?.alcohol === false ? 'Sense alcohol' : 'Alcohol?'}
         </button>
-        <button onClick={() => setStepsOpen(true)} className="flex h-20 flex-col items-center justify-center gap-1 rounded-xl bg-surface-2 text-xs font-medium">
-          <Footprints size={24} className={stepsTone} />
-          <span className={clsx('tabular', stepsTone)}>{steps != null ? `${steps.toLocaleString('ca-ES')}` : 'Passos?'}</span>
+        <button onClick={() => setStepsOpen(true)} className={clsx(pill, 'border-line bg-surface-2')}>
+          <Footprints size={20} className={stepsTone} />
+          <span className={clsx('tabular', stepsTone)}>{steps != null ? steps.toLocaleString('ca-ES') : 'Passos'}</span>
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-muted">Toca per marcar. L'alcohol té tres estats: sense marcar → sí → no. Omple la revisió setmanal sola.</p>
       <Sheet open={stepsOpen} onClose={() => setStepsOpen(false)} title="Passos">
         <StepsEditor date={date} value={steps ?? 8000} onDone={() => setStepsOpen(false)} />
       </Sheet>

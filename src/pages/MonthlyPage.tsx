@@ -62,7 +62,6 @@ export function MonthlyPage() {
                 <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.alcoholDays}</div><div className="text-[11px] text-muted">dies amb alcohol</div></div>
                 <div className="rounded-xl bg-surface-2 py-2"><div className="tabular text-lg font-bold">{s.stepsAvg != null ? s.stepsAvg.toLocaleString('ca-ES') : '—'}</div><div className="text-[11px] text-muted">passos/dia</div></div>
               </div>
-              <p className="mt-2 text-xs text-muted">Sobre {s.loggedDays} dies registrats.</p>
             </Card>
           )}
           {s.prs.length > 0 && (
@@ -79,7 +78,6 @@ export function MonthlyPage() {
             </Card>
           )}
           <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={share}><Share2 /> Desar o compartir la imatge</Button>
-          <p className="text-center text-xs text-muted">Pes: mitjana de totes les pesades del mes, comparada amb la del mes anterior.</p>
         </>
       )}
     </Page>

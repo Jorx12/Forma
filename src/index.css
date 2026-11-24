@@ -2,33 +2,47 @@
 
 @custom-variant light (&:where(.light, .light *));
 
+/* ── Glassmorphism eteri ──
+   Fons fosc amb llum difusa (blobs desenfocats) i superfícies de vidre translúcid. */
 :root {
-  --bg: #0b0d10;
-  --surface: #14171c;
-  --surface-2: #1c2027;
-  --line: #2a2f38;
-  --text: #e8eaed;
-  --muted: #9aa1ad;
-  --accent: #4ade80;
-  --accent-ink: #052e13;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --info: #60a5fa;
+  --bg: #090b13;
+  --surface: rgba(255, 255, 255, 0.055);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --surface-solid: #141725;
+  --line: rgba(255, 255, 255, 0.09);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --text: #eef0f8;
+  --muted: rgba(226, 230, 245, 0.56);
+  --accent: #8eeac8;
+  --accent-ink: #062a1f;
+  --warn: #f3c58b;
+  --danger: #f4a0a0;
+  --info: #a9bcff;
+  --blob-1: rgba(124, 108, 242, 0.34);
+  --blob-2: rgba(60, 198, 184, 0.22);
+  --blob-3: rgba(240, 161, 194, 0.16);
+  --shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
 .light {
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --surface-2: #eceef2;
-  --line: #d6dae1;
-  --text: #111418;
-  --muted: #5d6573;
-  --accent: #16a34a;
+  --bg: #eef0f7;
+  --surface: rgba(255, 255, 255, 0.58);
+  --surface-2: rgba(255, 255, 255, 0.55);
+  --surface-solid: #f7f8fc;
+  --line: rgba(20, 24, 40, 0.08);
+  --glass-edge: rgba(255, 255, 255, 0.9);
+  --text: #1a1e2c;
+  --muted: rgba(26, 30, 44, 0.55);
+  --accent: #1f9d74;
   --accent-ink: #ffffff;
-  --warn: #b45309;
-  --danger: #dc2626;
-  --info: #2563eb;
+  --warn: #b7791f;
+  --danger: #c2453f;
+  --info: #4a63d0;
+  --blob-1: rgba(150, 132, 255, 0.35);
+  --blob-2: rgba(110, 220, 200, 0.35);
+  --blob-3: rgba(255, 180, 210, 0.3);
+  --shadow: 0 10px 34px -14px rgba(40, 50, 90, 0.25);
   color-scheme: light;
 }
 
@@ -36,6 +50,7 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-solid: var(--surface-solid);
   --color-line: var(--line);
   --color-text: var(--text);
   --color-muted: var(--muted);
@@ -52,14 +67,47 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.005em;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
 
+/* Llum ambiental: fixa i estàtica (sense animacions) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vh -20vw;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 12% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(34vmax 34vmax at 92% 28%, var(--blob-2), transparent 70%),
+    radial-gradient(40vmax 40vmax at 40% 105%, var(--blob-3), transparent 70%);
+  filter: blur(40px);
+}
+
+/* Superfície de vidre */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+.glass-strong {
+  background: color-mix(in srgb, var(--surface-solid) 78%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+}
+
 button { cursor: pointer; touch-action: manipulation; }
 input, select, textarea { font-size: 16px; } /* evita el zoom d'iOS */
+select { appearance: none; -webkit-appearance: none; }
 
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 .pt-safe { padding-top: env(safe-area-inset-top); }
@@ -68,3 +116,9 @@ input, select, textarea { font-size: 16px; } /* evita el zoom d'iOS */
 
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+input[type='checkbox'] { accent-color: var(--accent); }
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-strong { background: var(--surface-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Button, Card, Field, inputCls, Notice, Page, Stepper } from '../components/ui';
+import { Button, Card, inputCls, Notice, Page, Stepper } from '../components/ui';
 import { db, uid } from '../db/db';
 import { useDailyLogs, useMeasurements, useProfile, useReviews, useSessions, useSwims, useWeighIns } from '../db/hooks';
 import { alcoholInsight, weekHabits } from '../lib/habits';
@@ -40,13 +40,6 @@ export function ReviewPage() {
   const waist = st.waistCm ?? waistIn ?? undefined;
   const canNext = addDaysISO(week, 7) <= addDaysISO(weekStartISO(todayISO()), -7);
 
-  const items = [
-    { ok: st.avgKg != null && waist != null, label: 'Mitjana de pes i cintura' },
-    { ok: st.sessions >= 3, label: `Sessions fetes ${st.sessions}/3` },
-    { ok: f.snacksPlanned >= 5, label: `Berenars ${f.snacksPlanned}/5` },
-    { ok: f.alcoholDays <= 2, label: `Dies amb alcohol: ${f.alcoholDays} (màxim 2)` },
-    { ok: !!f.nextGoal?.trim(), label: 'Un objectiu per a la setmana vinent' },
-  ];
 
   async function save() {
     if (waistIn != null && st.waistCm == null) {
@@ -74,50 +67,48 @@ export function ReviewPage() {
         </Notice>
       ))}
 
-      <Card title="Checklist">
-        <ul className="space-y-2">
-          {items.map((it) => (
-            <li key={it.label} className="flex items-center gap-3">
-              <span className={clsx('flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2', it.ok ? 'border-accent bg-accent text-accent-ink' : 'border-line')}>{it.ok && <Check size={16} />}</span>
-              <span className={clsx('text-sm', it.ok && 'text-muted')}>{it.label}</span>
-            </li>
-          ))}
+      <Card className="py-2">
+        <ul className="divide-y divide-line">
+          <CheckRow ok={st.avgKg != null && waist != null} label="Pes i cintura"
+            value={<span className="tabular text-right text-sm">{st.avgKg != null ? `${fmtNum(st.avgKg, 2)} kg` : '—'}{st.change != null && <span className={st.change <= 0 ? 'text-accent' : 'text-warn'}> {st.change > 0 ? '+' : '−'}{fmtNum(Math.abs(st.change), 2)}</span>}<br /><span className="text-muted">{waist != null ? `${fmtNum(waist)} cm` : 'cintura —'}</span></span>} />
+          {st.waistCm == null && (
+            <li className="py-3"><Stepper compact label="Cintura (cm)" value={waistIn ?? measures.filter((m) => m.waistCm).at(-1)?.waistCm ?? 95} step={0.5} digits={1} min={50} max={200} unit="cm" onChange={setWaistIn} /></li>
+          )}
+          <CheckRow ok={st.sessions >= 3} label="Sessions" value={<span className="tabular">{st.sessions}/3</span>} />
+          <CheckRow ok={f.snacksPlanned >= 5} label="Berenars" sub={fromLogs ? `registre: ${hab.snacks}` : undefined}
+            value={<Mini value={f.snacksPlanned} max={5} onChange={(v) => set({ snacksPlanned: v })} suffix="/5" />} />
+          <CheckRow ok={f.alcoholDays <= 2} label="Dies amb alcohol" sub={f.alcoholDays > 2 ? 'màxim 2' : fromLogs ? `registre: ${hab.alcoholDays}` : 'màxim 2'}
+            value={<Mini value={f.alcoholDays} max={7} onChange={(v) => set({ alcoholDays: v })} />} />
+          <CheckRow ok={!!f.nextGoal?.trim()} label="Objectiu de la setmana vinent" />
+          <li className="pb-3">
+            <input className={inputCls} value={f.nextGoal ?? ''} placeholder="p. ex. planificar els berenars el diumenge" onChange={(e) => set({ nextGoal: e.target.value })} />
+          </li>
         </ul>
-      </Card>
-
-      <Card title="Pes i cintura">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-surface-2 p-3">
-            <div className="text-xs text-muted">Mitjana de pes</div>
-            <div className="tabular text-xl font-bold">{st.avgKg != null ? `${fmtNum(st.avgKg, 2)} kg` : '—'}</div>
-            <div className="text-xs text-muted">{st.change != null ? `${st.change > 0 ? '+' : ''}${fmtNum(st.change, 2)} kg vs anterior` : 'sense comparació'}</div>
-          </div>
-          <div className="rounded-xl bg-surface-2 p-3">
-            <div className="text-xs text-muted">Cintura (dl {fmtDate(reviewDay, 'd/M')})</div>
-            <div className="tabular text-xl font-bold">{waist != null ? `${fmtNum(waist)} cm` : '—'}</div>
-            <div className="text-xs text-muted">{st.waistCm != null && st.prevWaistCm != null ? `${st.waistCm - st.prevWaistCm > 0 ? '+' : ''}${fmtNum(st.waistCm - st.prevWaistCm)} cm vs anterior` : ' '}</div>
-          </div>
-        </div>
-        {st.avgKg == null && <p className="mt-2 text-xs text-muted">No hi ha pesades d'aquella setmana.</p>}
-        {st.waistCm == null && (
-          <div className="mt-3"><Stepper label="Cintura avui (cm)" value={waistIn ?? measures.filter((m) => m.waistCm).at(-1)?.waistCm ?? 95} step={0.5} digits={1} min={50} max={200} unit="cm" onChange={setWaistIn} /></div>
-        )}
-      </Card>
-
-      <Card title="La setmana">
-        <div className="space-y-3">
-          <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">Sessions fetes: <strong>{st.sessions}/3</strong> <span className="text-muted">(força, natació i hotel)</span></div>
-          {fromLogs && <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">Del registre diari ({hab.loggedDays} dies): <strong>{hab.snacks}</strong> berenars, <strong>{hab.alcoholDays}</strong> dies amb alcohol{hab.stepsAvg != null && <>, <strong>{hab.stepsAvg.toLocaleString('ca-ES')}</strong> passos/dia</>}.</div>}
-          <Stepper label="Berenars fets o planificats (de 5)" value={f.snacksPlanned} step={1} min={0} max={5} onChange={(v) => set({ snacksPlanned: v })} />
-          <Stepper label="Dies amb alcohol (màxim 2)" value={f.alcoholDays} step={1} min={0} max={7} onChange={(v) => set({ alcoholDays: v })} />
-          {f.alcoholDays > 2 && <Notice tone="warn">Més de 2 dies amb alcohol. La setmana vinent, intenta deixar-ho en 2 com a màxim.</Notice>}
-          <Field label="Objectiu per a la setmana vinent">
-            <input className={inputCls} value={f.nextGoal ?? ''} placeholder="p. ex. planificar els 5 berenars el diumenge" onChange={(e) => set({ nextGoal: e.target.value })} />
-          </Field>
-        </div>
+        {hab.stepsAvg != null && <p className="pb-2 text-xs text-muted">👟 {hab.stepsAvg.toLocaleString('ca-ES')} passos/dia de mitjana</p>}
       </Card>
 
       <Button variant="primary" size="lg" className="w-full" onClick={save}>{saved ? 'Revisió desada ✓' : existing ? 'Actualitzar revisió' : 'Desar revisió'}</Button>
     </Page>
+  );
+}
+
+function CheckRow({ ok, label, sub, value }: { ok: boolean; label: string; sub?: string; value?: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 py-3">
+      <span className={clsx('flex h-6 w-6 shrink-0 items-center justify-center rounded-full border', ok ? 'border-accent bg-accent text-accent-ink' : 'border-line')}>{ok && <Check size={14} />}</span>
+      <span className="min-w-0 flex-1"><span className="block text-[15px]">{label}</span>{sub && <span className="block text-xs text-muted">{sub}</span>}</span>
+      {value}
+    </li>
+  );
+}
+
+function Mini({ value, max, onChange, suffix }: { value: number; max: number; onChange: (v: number) => void; suffix?: string }) {
+  const b = 'flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface-2 text-lg leading-none';
+  return (
+    <span className="flex items-center gap-2">
+      <button className={b} aria-label="Menys" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+      <span className="tabular w-8 text-center">{value}{suffix}</span>
+      <button className={b} aria-label="Més" onClick={() => onChange(Math.min(max, value + 1))}>+</button>
+    </span>
   );
 }

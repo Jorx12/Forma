@@ -152,8 +152,8 @@ export const FOOT_LABEL: Record<FootImpact, string> = { baix: 'Baix', mitja: 'Mi
 export const LOWER_GROUPS: MuscleGroup[] = ['quadriceps', 'isquios', 'glutis', 'bessons'];
 
 export const WARMUP: { id: string; label: string }[] = [
-  { id: 'bici', label: '5 min de bici estàtica o el·líptica suau (millor que la cinta, pel peu)' },
-  { id: 'mobilitat', label: 'Mobilitat: cercles de braços, rotacions de maluc, gat-vaca' },
-  { id: 'turmell', label: 'Mobilitat de turmell i dits del peu (assegut, 30 s per peu)' },
-  { id: 'aproximacio', label: "1–2 sèries d'aproximació lleugeres al primer exercici" },
+  { id: 'bici', label: "5' de bici o el·líptica suau" },
+  { id: 'mobilitat', label: 'Mobilitat: braços, malucs, gat-vaca' },
+  { id: 'turmell', label: 'Turmells i dits del peu (30 s)' },
+  { id: 'aproximacio', label: "1–2 sèries d'aproximació" },
 ];
