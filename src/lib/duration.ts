@@ -1,5 +1,6 @@
-import { planCardio } from '../data/cardio';
-import type { CardioLog, Exercise, Profile, RoutineItem } from '../db/types';
+import { cardioMinutesFor, planCardio } from '../data/cardio';
+import { dayNum, todayISO } from './dates';
+import type { CardioLog, Exercise, Profile, RoutineDay, RoutineItem } from '../db/types';
 import { isIsolationLike } from './generator';
 
 /** Supòsits per estimar la durada */
@@ -36,7 +37,8 @@ export interface FitResult {
  * Si no hi cap: es redueixen els descansos fins al mínim recomanat i després les sèries (mai per sota de 2).
  * Si sobra temps: s'afegeix una 4a sèrie als compostos principals.
  */
-export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>): FitResult {
+export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>, opts: { grow?: boolean } = {}): FitResult {
+  const allowGrow = opts.grow ?? true;
   const budget = minutes * 60;
   const iso = (it: RoutineItem) => {
     const e = byId.get(it.exerciseId);
@@ -48,6 +50,7 @@ export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Ex
   const included = Array.from({ length: n0 }, (_, i) => i);
   const sel = all.slice(0, n0).map((it) => ({ ...it }));
   for (let i = n0; i < all.length && sel.length < MAX_EXERCISES; i++) {
+    if (!allowGrow) { sel.push({ ...all[i] }); included.push(i); continue; }
     if (total(sel) + itemSec(all[i]) > budget) break;
     sel.push({ ...all[i] });
     included.push(i);
@@ -68,7 +71,7 @@ export function fitDay(all: RoutineItem[], minutes: number, byId: Map<string, Ex
     }
     // 3) dies molt curts: treu el darrer exercici (mai per sota de 4)
     while (total(sel) > budget && sel.length > HARD_MIN_EXERCISES) { sel.pop(); included.pop(); }
-  } else {
+  } else if (allowGrow) {
     // Temps de sobres, per ordre: 4a sèrie als compostos, descansos més llargs, 4a sèrie als aïllaments
     const grow = (pred: (it: RoutineItem) => boolean, change: (it: RoutineItem) => RoutineItem) => {
       for (const it of sel) {
@@ -98,16 +101,45 @@ export interface SessionPlan {
   totalMin: number;
 }
 
+export const weeksSince = (iso: string, today = todayISO()) => Math.floor((dayNum(today) - dayNum(iso)) / 7);
+
+/** Minuts estimats d'un circuit (rutina d'hotel): voltes seguides amb poc descans */
+export function circuitMinutes(items: RoutineItem[]) {
+  const rounds = Math.max(0, ...items.map((i) => i.sets));
+  const perRound = items.reduce((t, it) => t + 40 + it.restSec, 0);
+  return Math.round((rounds * perRound) / 60);
+}
+
+export interface PlanOpts {
+  cardioOn?: boolean;
+  /** pla fix (no s'afegeixen exercicis ni sèries) */
+  fixed?: boolean;
+  day?: Pick<RoutineDay, 'circuit'>;
+  /** permet baixar per sota de 40 min (p. ex. sessió de tornada de 30 min) */
+  minMinutes?: number;
+  today?: string;
+}
+
 /**
- * Reparteix el temps: escalfament 5–8 min, força i cardio HIIT 10–20 min (proporcionals a la durada).
+ * Reparteix el temps: escalfament 5–8 min, força i cardio.
+ * Cardio: 10 min les 4 primeres setmanes del pla, després 15–20 min segons la durada.
+ * Circuit (hotel): sense cardio ni ajust, s'estima el temps de les voltes.
  */
-export function planSession(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>, profile: Profile, cardioOn = profile.cardio?.enabled ?? true): SessionPlan {
-  const m = Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, minutes));
-  const t = (m - MIN_MINUTES) / (MAX_MINUTES - MIN_MINUTES);
+export function planSession(all: RoutineItem[], minutes: number, byId: Map<string, Exercise>, profile: Profile, opts: PlanOpts | boolean = {}): SessionPlan {
+  const o: PlanOpts = typeof opts === 'boolean' ? { cardioOn: opts } : opts;
+  const cardioOn = o.cardioOn ?? profile.cardio?.enabled ?? true;
+  if (o.day?.circuit) {
+    const items = all.map((it) => ({ ...it }));
+    const strengthMin = circuitMinutes(items);
+    return { minutes: strengthMin + 3, warmupMin: 3, strength: { items, included: items.map((_, i) => i), minutes: strengthMin }, cardio: null, totalMin: strengthMin + 3 };
+  }
+  const lo = o.minMinutes ?? MIN_MINUTES;
+  const m = Math.min(MAX_MINUTES, Math.max(lo, minutes));
+  const t = Math.max(0, (m - MIN_MINUTES) / (MAX_MINUTES - MIN_MINUTES));
   const warmupMin = Math.round(5 + 3 * t);
-  const cardioMin = cardioOn ? Math.round(10 + 10 * t) : 0;
-  const cardio = cardioOn ? planCardio(cardioMin, profile.cardio?.machine ?? 'bici', profile.cardio?.protocolId ?? '30-60') : null;
-  const strength = fitDay(all, m - warmupMin - cardioMin, byId);
-  const cardioReal = cardio ? Math.round((cardio.easyStartSec + cardio.rounds * (cardio.workSec + cardio.restSec) + cardio.easyEndSec) / 60) : 0;
+  const cardioMin = cardioOn ? cardioMinutesFor(m, weeksSince(profile.startDate, o.today)) : 0;
+  const cardio = cardioOn ? planCardio(cardioMin, profile.cardio?.machine ?? 'bici', profile.cardio?.protocolId ?? 'continu') : null;
+  const strength = fitDay(all, m - warmupMin - cardioMin, byId, { grow: !o.fixed });
+  const cardioReal = cardio ? Math.round(((cardio.continuousSec ?? 0) + cardio.easyStartSec + cardio.rounds * (cardio.workSec + cardio.restSec) + cardio.easyEndSec) / 60) : 0;
   return { minutes: m, warmupMin, strength, cardio, totalMin: warmupMin + strength.minutes + cardioReal };
 }

@@ -6,7 +6,8 @@ import { useActiveRoutine, useExercises, useProfile } from '../db/hooks';
 import type { DayKey, Exercise, Profile, Routine, RoutineItem } from '../db/types';
 import { ExerciseBadges } from '../components/ExerciseBadges';
 import { Badge, Button, Card, Empty, Field, Notice, Page, Segmented, Sheet, Stepper } from '../components/ui';
-import { CARDIO_MACHINES, HIIT_PROTOCOLS } from '../data/cardio';
+import { CARDIO_ALLOWED, CARDIO_MACHINES, CARDIO_WARNING, HIIT_PROTOCOLS } from '../data/cardio';
+import { dayLabel, personalRoutine } from '../data/plan';
 import { durationLabel, type SessionPlan, MAX_MINUTES, MIN_MINUTES, planSession, sessionMinutes } from '../lib/duration';
 import { defaultItem, generateRoutine, newRoutine, scoreExercise, usable } from '../lib/generator';
 
@@ -37,9 +38,20 @@ export function RoutinePage() {
   const mins = sessionMinutes(profile);
 
   async function regenerate() {
-    if (routine && !confirm('Generar una rutina nova? Substituirà l\'actual (l\'historial es manté).')) return;
+    if (routine && !confirm(routine.template ? 'Generar una rutina automàtica A/B/C? Substituirà el teu pla personal (el podràs restaurar i l\'historial es manté).' : 'Generar una rutina nova? Substituirà l\'actual (l\'historial es manté).')) return;
     setWarnings(await createRoutine(exercises!, profile!, routine ? 1 : 0));
   }
+  async function restorePlan() {
+    if (!confirm('Restaurar les rutines del pla personal (Força A, Força B i hotel)? La rutina actual queda guardada a l\'historial.')) return;
+    await db.transaction('rw', db.routines, db.exercises, async () => {
+      await db.routines.toCollection().modify({ active: false });
+      const r = personalRoutine(uid());
+      await db.routines.put(r);
+      const ids = r.days.flatMap((d) => d.items.flatMap((i) => [i.exerciseId, ...(i.altIds ?? [])]));
+      await db.exercises.where('id').anyOf(ids).modify({ available: true });
+    });
+  }
+  const planOpts = (d: Routine['days'][number]) => ({ fixed: routine?.fixed, day: d });
 
   const update = (fn: (r: Routine) => void) => {
     const r = structuredClone(routine!);
@@ -49,29 +61,34 @@ export function RoutinePage() {
   const dayItems = (r: Routine, k: DayKey) => r.days.find((d) => d.key === k)!.items;
 
   return (
-    <Page title="Rutina" back="/mes" action={<Button size="sm" onClick={regenerate}><RefreshCw size={16} /> {routine ? 'Regenerar' : 'Generar'}</Button>}>
+    <Page title="Rutines" back="/mes" action={<Button size="sm" onClick={regenerate}><RefreshCw size={16} /> {routine ? 'Automàtica' : 'Generar'}</Button>}>
       {warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
+      {routine && !routine.template && (
+        <Notice tone="info">Ara fas servir una rutina generada automàticament. <button className="font-semibold underline" onClick={restorePlan}>Restaurar el pla personal</button></Notice>
+      )}
       {!routine ? (
         <Card>
           <Empty>Encara no tens cap rutina.</Empty>
           <p className="mb-3 text-sm text-muted">Revisa primer el catàleg de màquines (quines tens i quines t'agraden) i després genera la rutina.</p>
-          <Button variant="primary" size="lg" className="w-full" onClick={regenerate}>Generar rutina full body A/B/C</Button>
+          <Button variant="primary" size="lg" className="w-full" onClick={restorePlan}>Fer servir el pla personal (A, B i hotel)</Button>
+          <Button size="lg" className="mt-2 w-full" onClick={regenerate}>Generar rutina full body A/B/C</Button>
         </Card>
       ) : (
         <>
           <Card title="Durada habitual">
             <Stepper value={mins} step={5} min={MIN_MINUTES} max={MAX_MINUTES} unit="min"
               onChange={(v) => db.profile.update('me', { sessionMinutes: v })} />
-            <StructureSummary profile={profile} plan={planSession(routine.days[0]?.items ?? [], mins, byId, profile)} />
+            <StructureSummary profile={profile} plan={planSession(routine.days[0]?.items ?? [], mins, byId, profile, planOpts(routine.days[0]))} />
             <p className="mt-2 text-xs text-muted">
-              Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 4–5),
-              i s'ajusten les sèries i els descansos. En començar l'entrenament pots triar el temps que tens aquell dia.
+              {routine.fixed
+                ? "El pla és fix: es fan els exercicis i les sèries que hi ha a cada rutina. Si un dia tens menys temps, s'escurcen descansos i sèries (començant pels últims)."
+                : "Cada dia té els exercicis en ordre de prioritat. Segons el temps, s'hi afegeixen o se'n treuen els últims (mínim 4–5), i s'ajusten les sèries i els descansos."}
             </p>
           </Card>
           <CardioSettings profile={profile} />
-          <p className="text-sm text-muted">Base: 3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>
-          {routine.days.map((d) => { const plan = planSession(d.items, mins, byId, profile); const fit = plan.strength; return (
-            <Card key={d.key} title={`Dia ${d.key} · força ≈${durationLabel(fit.minutes)}`}
+          {!routine.fixed && <p className="text-sm text-muted">Base: 3 sèries de 8–12 repeticions als compostos i de 10–15 als aïllaments. Descans de 90–120 s als compostos i de 60–90 s als aïllaments.</p>}
+          {routine.days.map((d) => { const plan = planSession(d.items, mins, byId, profile, planOpts(d)); const fit = plan.strength; return (
+            <Card key={d.key} title={`${dayLabel(d.key, routine.days)} · ${d.circuit ? `${Math.max(0, ...d.items.map((i) => i.sets))} voltes · ≈${fit.minutes} min` : `força ≈${durationLabel(fit.minutes)}`}`}
               right={<Button size="sm" variant="ghost" onClick={() => setSheet({ kind: 'add', day: d.key })}><Plus size={16} /> Afegir</Button>}>
               <ol className="divide-y divide-line">
                 {d.items.map((it, i) => {
@@ -85,8 +102,10 @@ export function RoutinePage() {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium">{e?.name ?? 'Exercici esborrat'}</div>
                           <div className="text-sm text-muted">
-                            {fitted ? `${fitted.sets} × ${it.repMin}–${it.repMax} · descans ${fitted.restSec} s` : `Només en dies més llargs · ${it.sets} × ${it.repMin}–${it.repMax}`}
+                            {(() => { const u = e?.measure === 'seconds' ? ' s' : ''; const r = it.repMin === it.repMax ? `${it.repMin}${u}` : `${it.repMin}–${it.repMax}${u}`;
+                              return fitted ? `${fitted.sets} × ${r} · descans ${fitted.restSec} s` : `Només en dies més llargs · ${it.sets} × ${r}`; })()}
                           </div>
+                          {it.altIds?.length ? <div className="text-xs text-info">o bé: {it.altIds.map((id) => byId.get(id)?.name ?? id).join(', ')}</div> : null}
                           {e && <ExerciseBadges e={e} pattern={false} />}
                           <div className="mt-1"><Badge tone="info">{PATTERN_LABEL[it.slot]}</Badge></div>
                         </div>
@@ -105,7 +124,7 @@ export function RoutinePage() {
               <Coverage items={fit.items} />
             </Card>
           ); })}
-          <WeeklyBalance days={routine.days.map((d) => planSession(d.items, mins, byId, profile).strength.items)} minutes={mins} />
+          {!routine.fixed && <WeeklyBalance days={routine.days.map((d) => planSession(d.items, mins, byId, profile, planOpts(d)).strength.items)} minutes={mins} />}
         </>
       )}
 
@@ -230,22 +249,22 @@ function StructureSummary({ plan, profile }: { plan: SessionPlan; profile: Profi
     <div className="mt-3 grid grid-cols-3 gap-2 text-center">
       <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{plan.warmupMin}'</div><div className="text-[11px] text-muted">Escalfament</div></div>
       <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{plan.strength.minutes}'</div><div className="text-[11px] text-muted">Força</div></div>
-      <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{on && plan.cardio ? `${plan.cardio.plannedMin}'` : '—'}</div><div className="text-[11px] text-muted">HIIT</div></div>
+      <div className="rounded-xl bg-surface-2 py-2"><div className="tabular font-bold">{on && plan.cardio ? `${plan.cardio.plannedMin}'` : '—'}</div><div className="text-[11px] text-muted">Cardio</div></div>
     </div>
   );
 }
 
 function CardioSettings({ profile }: { profile: Profile }) {
-  const c = profile.cardio ?? { enabled: true, machine: 'bici' as const, protocolId: '30-60' };
+  const c = profile.cardio ?? { enabled: true, machine: 'bici' as const, protocolId: 'continu' };
   const set = (patch: Partial<typeof c>) => db.profile.update('me', { cardio: { ...c, ...patch } });
   return (
-    <Card title="Cardio HIIT al final">
+    <Card title="Cardio després de la força">
       <Segmented value={c.enabled ? 'si' : 'no'} onChange={(v) => set({ enabled: v === 'si' })} options={[{ value: 'si', label: 'Sí, per defecte' }, { value: 'no', label: 'No' }]} />
       {c.enabled && (
         <div className="mt-3 space-y-3">
           <Field label="Màquina preferida">
-            <div className="grid grid-cols-2 gap-1.5">
-              {CARDIO_MACHINES.map((m) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {CARDIO_MACHINES.filter((m) => CARDIO_ALLOWED.includes(m.id)).map((m) => (
                 <button key={m.id} onClick={() => set({ machine: m.id })}
                   className={`min-h-11 rounded-xl px-2 text-sm font-medium ${c.machine === m.id ? 'bg-accent text-accent-ink' : 'bg-surface-2'}`}>
                   {m.label}{m.foot !== 'baix' && ' ⚠️'}
@@ -253,7 +272,7 @@ function CardioSettings({ profile }: { profile: Profile }) {
               ))}
             </div>
           </Field>
-          <Field label="Intervals">
+          <Field label="Tipus">
             <div className="space-y-1.5">
               {HIIT_PROTOCOLS.map((p) => (
                 <button key={p.id} onClick={() => set({ protocolId: p.id })}
@@ -263,7 +282,8 @@ function CardioSettings({ profile }: { profile: Profile }) {
               ))}
             </div>
           </Field>
-          <p className="text-xs text-muted">Només màquines sense impacte (res de córrer ni salts) per la fascitis. ⚠️ = dempeus, vigila la planta del peu. El bloc dura 10–20 min segons la durada del dia: 2' suaus, intervals i 1' de tornada a la calma.</p>
+          <Notice tone="warn">⚠️ {CARDIO_WARNING}</Notice>
+          <p className="text-xs text-muted">Durada: 10 min les 4 primeres setmanes del pla; després 15–20 min segons el temps del dia.</p>
         </div>
       )}
     </Card>

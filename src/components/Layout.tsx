@@ -1,9 +1,9 @@
 import clsx from 'clsx';
-import { Dumbbell, Home, LineChart, Menu, Scale, Waves } from 'lucide-react';
+import { CalendarCheck, Dumbbell, LineChart, Menu, Scale, Waves } from 'lucide-react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 
 const TABS = [
-  { to: '/', label: 'Inici', icon: Home, end: true },
+  { to: '/', label: 'Avui', icon: CalendarCheck, end: true },
   { to: '/pes', label: 'Pes', icon: Scale },
   { to: '/entrenar', label: 'Entrenar', icon: Dumbbell, big: true },
   { to: '/natacio', label: 'Natació', icon: Waves },

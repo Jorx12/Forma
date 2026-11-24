@@ -5,14 +5,16 @@ import type { DayKey, Exercise, MuscleGroup, Pattern, Profile, Routine, RoutineD
  * Plantilla setmanal en ordre de prioritat. Cada dia cobreix genoll + maluc i alterna empènyer/estirar
  * horitzontal i vertical. Els primers 5 sempre es fan; la resta s'hi afegeixen en dies amb més temps.
  */
-export const TEMPLATE: Record<DayKey, Pattern[]> = {
+type GenKey = 'A' | 'B' | 'C';
+
+export const TEMPLATE: Record<GenKey, Pattern[]> = {
   A: ['push_h', 'pull_v', 'knee', 'hip', 'push_v', 'isolation', 'core', 'isolation', 'isolation'],
   B: ['push_v', 'pull_h', 'knee', 'hip', 'pull_v', 'isolation', 'core', 'isolation', 'isolation'],
   C: ['push_h', 'pull_h', 'knee', 'hip', 'isolation', 'core', 'push_v', 'isolation', 'isolation'],
 };
 
 /** Grups preferits per als aïllaments de cada dia (per repartir-los durant la setmana) */
-const ISOLATION_FOCUS: Record<DayKey, MuscleGroup[]> = {
+const ISOLATION_FOCUS: Record<GenKey, MuscleGroup[]> = {
   A: ['espatlles', 'biceps'],
   B: ['isquios', 'triceps'],
   C: ['biceps', 'triceps', 'quadriceps', 'glutis', 'pit'],
@@ -21,7 +23,8 @@ const ISOLATION_FOCUS: Record<DayKey, MuscleGroup[]> = {
 /** Grups per als aïllaments extra dels dies llargs */
 const ISOLATION_EXTRA: MuscleGroup[] = ['espatlles', 'biceps', 'triceps', 'isquios', 'quadriceps', 'glutis', 'pit', 'esquena'];
 
-export const DAY_KEYS: DayKey[] = ['A', 'B', 'C'];
+export const DAY_KEYS: GenKey[] = ['A', 'B', 'C'];
+export type { DayKey };
 
 export const isIsolationLike = (e: Pick<Exercise, 'pattern' | 'isCompound'>) =>
   !e.isCompound || e.pattern === 'isolation' || e.pattern === 'core';

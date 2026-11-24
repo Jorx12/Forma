@@ -10,7 +10,9 @@ export async function getActiveSession(): Promise<Session | undefined> {
   return s?.status === 'en_curs' ? s : undefined;
 }
 
-export async function startSession(day: DayKey, deload: boolean, minutes: number, cardioOn: boolean): Promise<string> {
+export interface StartOpts { day: DayKey; deload: boolean; minutes: number; cardioOn: boolean; comeback?: boolean }
+
+export async function startSession({ day, deload, minutes, cardioOn, comeback }: StartOpts): Promise<string> {
   const [profile, routine, exercises, sessions] = await Promise.all([
     db.profile.get('me'),
     db.routines.filter((r) => r.active).first(),
@@ -18,8 +20,11 @@ export async function startSession(day: DayKey, deload: boolean, minutes: number
     db.sessions.toArray(),
   ]);
   if (!profile || !routine) throw new Error('Cal un perfil i una rutina');
-  const all = routine.days.find((d) => d.key === day)?.items ?? [];
-  const plan = planSession(all, minutes, new Map(exercises.map((e) => [e.id, e])), profile, cardioOn);
+  const rd = routine.days.find((d) => d.key === day);
+  const all = rd?.items ?? [];
+  const plan = planSession(all, minutes, new Map(exercises.map((e) => [e.id, e])), profile, {
+    cardioOn, fixed: routine.fixed, day: rd, minMinutes: comeback ? 30 : undefined,
+  });
   const entries = buildEntries(plan.strength.items, exercises, profile, sessions, deload);
   const s: Session = {
     id: uid(),
@@ -34,6 +39,7 @@ export async function startSession(day: DayKey, deload: boolean, minutes: number
     targetMinutes: minutes,
     warmupMin: plan.warmupMin,
     cardio: plan.cardio ?? undefined,
+    ...(comeback ? { comeback: true } : {}),
   };
   await db.sessions.put(s);
   await setMeta('activeSessionId', s.id);

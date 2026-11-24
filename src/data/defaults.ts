@@ -1,4 +1,5 @@
 import type { Profile } from '../db/types';
+import { DEFAULT_MILESTONES, DEFAULT_MODES, DEFAULT_WEEK_PLAN } from './plan';
 
 export const DEFAULT_PROFILE: Profile = {
   id: 'me',
@@ -11,13 +12,16 @@ export const DEFAULT_PROFILE: Profile = {
   deficitKcal: 450,
   proteinPerKg: 1.9,
   goals: [
-    { id: 'g75', label: 'Fita 1', targetKg: 75, dateFrom: '2027-04-17', dateTo: '2027-05-17' },
-    { id: 'g70', label: 'Fita 2', targetKg: 70, dateFrom: '2027-08-15', dateTo: '2027-11-15' },
+    { id: 'g75', label: 'Fita 1', targetKg: 75, dateFrom: '2027-05-01', dateTo: '2027-05-31' },
+    { id: 'g70', label: 'Fita 2 (70–72 kg)', targetKg: 70, dateFrom: '2027-09-22', dateTo: '2027-12-21' },
   ],
   sessionsPerWeek: 3,
   adaptationWeeks: 2,
-  sessionMinutes: 60,
-  cardio: { enabled: true, machine: 'bici', protocolId: '30-60' },
+  sessionMinutes: 70,
+  cardio: { enabled: true, machine: 'bici', protocolId: 'continu' },
+  weekPlan: { ...DEFAULT_WEEK_PLAN },
+  milestones: DEFAULT_MILESTONES,
+  modes: DEFAULT_MODES,
   deloadEveryWeeks: 7,
   defaultIncrementKg: { upper: 2.5, lower: 5 },
   restSec: { compound: 105, isolation: 75 },

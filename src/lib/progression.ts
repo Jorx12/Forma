@@ -45,8 +45,10 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
 
   if (!hist.length) {
     return {
-      kind: 'primera', weightKg: 0, reps: fill(item.repMax),
-      reason: `Primera vegada: tria un pes amb què puguis fer ${item.repMax} repeticions deixant-ne 2–3 de marge.`,
+      kind: 'primera', weightKg: 0, reps: fill(exercise?.bodyweight ? item.repMin : item.repMax),
+      reason: exercise?.bodyweight
+        ? `Primera vegada: comença per ${item.repMin}${exercise.measure === 'seconds' ? ' s' : ' repeticions'} amb bona tècnica.`
+        : `Primera vegada: tria un pes amb què puguis fer ${item.repMax} repeticions deixant-ne 2–3 de marge.`,
     };
   }
   const last = hist[0].entry;
@@ -59,6 +61,14 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
     return {
       kind: 'descarrega', weightKg: roundTo(lastW * 0.9, inc), reps: fill(item.repMin), lastSummary,
       reason: `Setmana de descàrrega: ${sets} sèries amb un ~10 % menys de pes i sense apurar.`,
+    };
+  }
+  const noWeight = !!exercise?.bodyweight && lastW === 0;
+  const unit = exercise?.measure === 'seconds' ? 's' : 'reps';
+  if (hitTop(lastAdj) && noWeight) {
+    return {
+      kind: 'pujar', weightKg: 0, reps: fill(item.repMax), lastSummary,
+      reason: `Vas arribar a ${item.repMax} ${unit} a totes les sèries. Fes-ho una mica més difícil: més lent, una variant més dura o afegeix pes.`,
     };
   }
   if (hitTop(lastAdj)) {
@@ -91,10 +101,12 @@ export function planFor(item: RoutineItem, exercise: Exercise | undefined, profi
   };
 }
 
-export function nextDayKey(sessions: Session[]): DayKey {
-  const last = sessions.filter((s) => s.status === 'feta').sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
-  if (!last) return 'A';
-  return ({ A: 'B', B: 'C', C: 'A' } as const)[last.dayKey];
+/** Proper dia de força en rotació (sense comptar la rutina d'hotel) */
+export function nextDayKey(sessions: Session[], keys: DayKey[] = ['A', 'B', 'C']): DayKey {
+  const rot: DayKey[] = keys.filter((k) => k !== 'H');
+  const last = sessions.filter((s) => s.status === 'feta' && rot.includes(s.dayKey)).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  if (!last || !rot.length) return rot[0] ?? 'A';
+  return rot[(rot.indexOf(last.dayKey) + 1) % rot.length];
 }
 
 /** Data de referència per a l'adaptació: el primer entrenament fet (o avui) */
@@ -134,5 +146,6 @@ export function buildEntry(it: RoutineItem, e: Exercise | undefined, profile: Pr
     target: { sets: sets.length, repMin: it.repMin, repMax: it.repMax, weightKg: plan.weightKg, restSec: it.restSec },
     suggestion: { kind: plan.kind, reason: plan.reason },
     sets,
+    ...(it.altIds?.length ? { altIds: it.altIds } : {}),
   };
 }

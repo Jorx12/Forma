@@ -8,7 +8,7 @@ export interface Backup {
   data: Record<string, unknown[]>;
 }
 
-const TABLES = ['profile', 'weighIns', 'exercises', 'routines', 'sessions', 'meta', 'bodyMeasurements', 'swims'] as const;
+const TABLES = ['profile', 'weighIns', 'exercises', 'routines', 'sessions', 'meta', 'bodyMeasurements', 'swims', 'schedule', 'activities', 'weeklyReviews'] as const;
 const META_SKIP = new Set(['restTimer', 'lastExportAt']);
 
 export async function buildBackup(): Promise<Backup> {

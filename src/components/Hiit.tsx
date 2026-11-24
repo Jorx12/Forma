@@ -1,17 +1,17 @@
 import clsx from 'clsx';
 import { Flame, Pause, Play, SkipForward, Square } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { CARDIO_MACHINES, cardioTotalSec, hiitPhases, HIIT_PROTOCOLS, machineLabel, planCardio, protocolById } from '../data/cardio';
+import { CARDIO_ALLOWED, CARDIO_MACHINES, CARDIO_WARNING, cardioTotalSec, hiitPhases, HIIT_PROTOCOLS, isContinuous, machineLabel, planCardio, protocolById } from '../data/cardio';
 import { deleteMeta, setMeta } from '../db/db';
 import { useMeta } from '../db/hooks';
 import type { CardioLog, Effort } from '../db/types';
 import { beep, keepAwake, unlockAudio, vibrate } from '../lib/alerts';
 import { fmtClock } from '../lib/dates';
-import { Badge, Button, Card, Field, inputCls, Stepper } from './ui';
+import { Badge, Button, Card, Field, inputCls, Notice, Stepper } from './ui';
 
 interface HiitState { sessionId: string; startedAt: number; pausedAt: number | null; pausedMs: number }
 
-const PHASE_LABEL = { escalfar: 'Suau per començar', fort: 'FORT!', suau: 'Suau', calma: 'Tornada a la calma' } as const;
+const PHASE_LABEL = { escalfar: 'Suau per començar', fort: 'FORT!', suau: 'Suau', calma: 'Tornada a la calma', continu: 'Ritme constant' } as const;
 const EFFORTS: { value: Effort; label: string }[] = [{ value: 'facil', label: 'Fàcil' }, { value: 'correcte', label: 'Correcte' }, { value: 'dur', label: 'Dur' }];
 
 const elapsedSec = (h: HiitState, now: number) => ((h.pausedAt ?? now) - h.startedAt - h.pausedMs) / 1000;
@@ -27,8 +27,8 @@ export function HiitBlock({ sessionId, cardio, onChange, onAdd }: {
     return (
       <Card>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-muted">Avui sense cardio HIIT.</span>
-          <Button size="sm" onClick={onAdd}><Flame size={16} /> Afegir HIIT</Button>
+          <span className="text-sm text-muted">Avui sense cardio.</span>
+          <Button size="sm" onClick={onAdd}><Flame size={16} /> Afegir cardio</Button>
         </div>
       </Card>
     );
@@ -42,8 +42,8 @@ export function HiitBlock({ sessionId, cardio, onChange, onAdd }: {
 
   if (cardio.done) {
     return (
-      <Card title="Cardio HIIT" right={<Badge tone="accent">Fet</Badge>}>
-        <p className="text-sm">{machineLabel(cardio.machine)} · {protocolById(cardio.protocolId).label} · <strong>{cardio.roundsDone}/{cardio.rounds} rondes</strong> · {fmtClock(cardio.durationSec)}</p>
+      <Card title="Cardio" right={<Badge tone="accent">Fet</Badge>}>
+        <p className="text-sm">{machineLabel(cardio.machine)} · {protocolById(cardio.protocolId).label} · {!isContinuous(cardio) && <strong>{cardio.roundsDone}/{cardio.rounds} rondes · </strong>}{fmtClock(cardio.durationSec)}</p>
         <div className="mt-3 flex gap-1.5">
           {EFFORTS.map((e) => (
             <button key={e.value} onClick={() => onChange({ ...cardio, effort: cardio.effort === e.value ? undefined : e.value })}
@@ -63,10 +63,12 @@ export function HiitBlock({ sessionId, cardio, onChange, onAdd }: {
 
   return (
     <>
-      <Card title={`Cardio HIIT · ${Math.round(total / 60)} min`}>
+      <Card title={`Cardio · ${Math.round(total / 60)} min`}>
+        <Notice tone="warn">⚠️ {CARDIO_WARNING}</Notice>
+        <div className="mt-3" />
         <Field label="Màquina">
-          <div className="grid grid-cols-2 gap-1.5">
-            {CARDIO_MACHINES.map((m) => (
+          <div className="grid grid-cols-3 gap-1.5">
+            {CARDIO_MACHINES.filter((m) => CARDIO_ALLOWED.includes(m.id) || m.id === cardio.machine).map((m) => (
               <button key={m.id} onClick={() => replan({ machine: m.id })}
                 className={clsx('min-h-11 rounded-xl px-2 text-sm font-medium', cardio.machine === m.id ? 'bg-accent text-accent-ink' : 'bg-surface-2')}>
                 {m.label}{m.foot !== 'baix' && ' ⚠️'}
@@ -85,14 +87,14 @@ export function HiitBlock({ sessionId, cardio, onChange, onAdd }: {
           <Stepper label="Minuts del bloc" value={cardio.plannedMin} step={1} min={6} max={30} unit="min" onChange={(v) => replan({ plannedMin: v })} />
         </div>
         <p className="mt-2 text-xs text-muted">
-          2' suaus + {cardio.rounds} × ({cardio.workSec}" fort / {cardio.restSec}" suau) + 1' de calma. {CARDIO_MACHINES.find((m) => m.id === cardio.machine)?.tip}
+          {isContinuous(cardio) ? `${cardio.plannedMin}' a ritme moderat (pots parlar però et costa una mica).` : `2' suaus + ${cardio.rounds} × (${cardio.workSec}" fort / ${cardio.restSec}" suau) + 1' de calma.`} {CARDIO_MACHINES.find((m) => m.id === cardio.machine)?.tip}
         </p>
         <Button variant="primary" size="lg" className="mt-3 w-full" onClick={() => {
           unlockAudio();
           void deleteMeta('restTimer');
           void setMeta('hiit', { sessionId, startedAt: Date.now(), pausedAt: null, pausedMs: 0 } satisfies HiitState);
-        }}><Play /> {running ? 'Reprendre' : 'Començar HIIT'}</Button>
-        <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => onChange(undefined)}>Avui no faig HIIT</Button>
+        }}><Play /> {running ? 'Reprendre' : 'Començar cardio'}</Button>
+        <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => onChange(undefined)}>Avui no faig cardio</Button>
       </Card>
       {running && hiit && <HiitTimer state={hiit} cardio={cardio} onDone={(roundsDone, durationSec) => {
         void deleteMeta('hiit');
@@ -149,7 +151,7 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
     : { ...state, pausedAt: Date.now() });
   const skip = () => setMeta('hiit', { ...state, startedAt: state.startedAt - Math.max(0, left) * 1000 });
 
-  const bg = phase.kind === 'fort' ? 'bg-[#dc2626] text-white' : phase.kind === 'suau' ? 'bg-[#123a5c] text-white' : 'bg-surface text-text';
+  const bg = phase.kind === 'fort' ? 'bg-[#dc2626] text-white' : phase.kind === 'suau' || phase.kind === 'continu' ? 'bg-[#123a5c] text-white' : 'bg-surface text-text';
   const next = phases[idx + 1];
 
   return (
@@ -172,7 +174,7 @@ function HiitTimer({ state, cardio, onDone }: { state: HiitState; cardio: Cardio
           {paused ? <Play /> : <Pause />}{paused ? 'Continuar' : 'Pausa'}
         </button>
         <button onClick={skip} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold"><SkipForward />Saltar</button>
-        <button onClick={() => { if (confirm('Acabar el HIIT ara?')) finish(roundsDone(), t); }} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold"><Square />Acabar</button>
+        <button onClick={() => { if (confirm('Acabar el cardio ara?')) finish(roundsDone(), t); }} className="flex h-16 flex-col items-center justify-center rounded-2xl bg-black/25 text-sm font-semibold"><Square />Acabar</button>
       </div>
     </div>
   );

@@ -14,11 +14,11 @@ export const fmtMeters = (m: number) => (m >= 1000 ? `${(m / 1000).toLocaleStrin
 
 export function swimWeeks(swims: Swim[], weeks = 12) {
   const thisWeek = weekStartISO(toISODate());
-  const out: { week: string; meters: number; count: number }[] = [];
+  const out: { week: string; meters: number; minutes: number; count: number }[] = [];
   for (let i = weeks - 1; i >= 0; i--) {
     const w = addDaysISO(thisWeek, -7 * i);
     const inWeek = swims.filter((s) => weekStartISO(s.date) === w);
-    out.push({ week: w, meters: inWeek.reduce((t, s) => t + s.distanceM, 0), count: inWeek.length });
+    out.push({ week: w, meters: inWeek.reduce((t, s) => t + s.distanceM, 0), minutes: inWeek.reduce((t, s) => t + s.durationMin, 0), count: inWeek.length });
   }
   return out;
 }

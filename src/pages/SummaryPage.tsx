@@ -7,6 +7,8 @@ import { Badge, Button, Card, Empty, Page, Stat } from '../components/ui';
 import { fmtClock, fmtDuration, fmtLong } from '../lib/dates';
 import { completed, sessionPRs, sessionSetsDone, sessionVolume, summarizeEntry } from '../lib/stats';
 
+const sessionLabel = (k: string) => (k === 'H' ? "Rutina d'hotel" : ['A', 'B'].includes(k) ? `Força ${k}` : `Dia ${k}`);
+
 export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) {
   const { id } = useParams();
   const sessions = useSessions();
@@ -22,8 +24,8 @@ export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) 
   const KIND = { pes: 'Pes màxim', '1rm': '1RM estimat', reps: 'Repeticions' } as const;
 
   return (
-    <Page title={fromHistory ? `Dia ${s.dayKey}` : 'Entrenament acabat 💪'} back={fromHistory ? true : undefined}>
-      <p className="-mt-2 text-sm text-muted">{fmtLong(s.startedAt.slice(0, 10))} · Dia {s.dayKey}
+    <Page title={fromHistory ? sessionLabel(s.dayKey) : 'Entrenament acabat 💪'} back={fromHistory ? true : undefined}>
+      <p className="-mt-2 text-sm text-muted">{fmtLong(s.startedAt.slice(0, 10))} · {sessionLabel(s.dayKey)}{s.comeback && ' · tornada'}
         {s.flags.adaptation && ' · adaptació'}{s.flags.deload && ' · descàrrega'}{s.isDemo && ' · prova'}</p>
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Durada" value={fmtDuration(dur)} sub={s.targetMinutes ? `objectiu ${s.targetMinutes} min` : undefined} />
@@ -69,7 +71,7 @@ export function SummaryPage({ fromHistory = false }: { fromHistory?: boolean }) 
                   <span className="font-medium">{byId.get(e.exerciseId)?.name ?? 'Exercici'}</span>
                   {prs.some((p) => p.exerciseId === e.exerciseId) && <Badge tone="warn">PR</Badge>}
                 </div>
-                <div className="text-sm text-muted">{summarizeEntry(e)}</div>
+                <div className="text-sm text-muted">{summarizeEntry(e, { seconds: byId.get(e.exerciseId)?.measure === 'seconds' })}</div>
               </Link>
             </li>
           ))}

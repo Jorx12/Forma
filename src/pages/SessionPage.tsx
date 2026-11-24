@@ -3,8 +3,11 @@ import { Check, ChevronDown, ChevronUp, Minus, MoreVertical, Plus, Replace, Tras
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { WARMUP } from '../data/catalog';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { dayLabel } from '../data/plan';
+import { db } from '../db/db';
 import { useExercises, useMeta, useProfile, useSessions } from '../db/hooks';
-import type { Effort, Exercise, Profile, Session, SessionEntry } from '../db/types';
+import type { Effort, Exercise, Profile, Routine, Session, SessionEntry } from '../db/types';
 import { HiitBlock } from '../components/Hiit';
 import { RestTimer, startRest } from '../components/RestTimer';
 import { planCardio } from '../data/cardio';
@@ -26,6 +29,7 @@ export function SessionPage() {
   const sessions = useSessions();
   const exercises = useExercises();
   const profile = useProfile();
+  const routines = useLiveQuery(() => db.routines.toArray(), []);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -35,15 +39,16 @@ export function SessionPage() {
     return () => { document.removeEventListener('visibilitychange', onVis); void keepAwake(false); };
   }, []);
 
-  if (activeId === undefined || !sessions || !exercises || !profile) return null;
+  if (activeId === undefined || !sessions || !exercises || !profile || !routines) return null;
   const session = activeId ? sessions.find((s) => s.id === activeId && s.status === 'en_curs') : undefined;
   if (!session) return <Navigate to="/entrenar" replace />;
-  return <SessionView key={session.id} session={session} sessions={sessions} exercises={exercises} profile={profile} onExit={(id) => nav(id ? `/entrenar/resum/${id}` : '/entrenar', { replace: true })} />;
+  return <SessionView key={session.id} session={session} sessions={sessions} exercises={exercises} profile={profile} routine={routines.find((r) => r.id === session.routineId)} onExit={(id) => nav(id ? `/entrenar/resum/${id}` : '/entrenar', { replace: true })} />;
 }
 
-function SessionView({ session, sessions, exercises, profile, onExit }: {
-  session: Session; sessions: Session[]; exercises: Exercise[]; profile: Profile; onExit: (id?: string) => void;
+function SessionView({ session, sessions, exercises, profile, routine, onExit }: {
+  session: Session; sessions: Session[]; exercises: Exercise[]; profile: Profile; routine?: Routine; onExit: (id?: string) => void;
 }) {
+  const circuit = !!routine?.days.find((d) => d.key === session.dayKey)?.circuit;
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
   const firstOpen = session.entries.findIndex((e) => e.sets.some((s) => !s.done));
   const [open, setOpen] = useState<number>(firstOpen === -1 ? 0 : firstOpen);
@@ -75,7 +80,15 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
     const isLastSetOfEntry = entry.sets.every((x, k) => k === si || x.done);
     const remainingAfter = session.entries.some((e, k) => k !== ei && e.sets.some((x) => !x.done));
     if (!isLastSetOfEntry || remainingAfter) startRest(entry.target.restSec, byId.get(entry.exerciseId)?.name);
-    if (isLastSetOfEntry) {
+    if (circuit) {
+      // Circuit: després de cada exercici es passa al següent (volta a volta)
+      const n = session.entries.length;
+      for (let step = 1; step <= n; step++) {
+        const k = (ei + step) % n;
+        const e = session.entries[k];
+        if (e.sets.some((x, j) => !x.done && !(k === ei && j === si))) { setOpen(k); break; }
+      }
+    } else if (isLastSetOfEntry) {
       const next = session.entries.findIndex((e, k) => k > ei && e.sets.some((x) => !x.done));
       const any = next !== -1 ? next : session.entries.findIndex((e, k) => k !== ei && e.sets.some((x) => !x.done));
       if (any !== -1) setOpen(any);
@@ -87,7 +100,7 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
       if (confirm('No has fet cap sèrie. Vols descartar l\'entrenament?')) { await discardSession(session); onExit(); }
       return;
     }
-    const pending = [doneCount < totalSets && `${totalSets - doneCount} sèries`, session.cardio && !session.cardio.done && 'el HIIT'].filter(Boolean);
+    const pending = [doneCount < totalSets && `${totalSets - doneCount} sèries`, session.cardio && !session.cardio.done && 'el cardio'].filter(Boolean);
     if (pending.length && !confirm(`Et queda per fer: ${pending.join(' i ')}. Acabar igualment?`)) return;
     await finishSession(session);
     onExit(session.id);
@@ -97,7 +110,7 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
     <div className="mx-auto max-w-xl px-4 pt-safe pb-40">
       <header className="sticky top-0 z-20 -mx-4 mb-3 flex items-center gap-2 bg-bg/95 px-4 py-2 backdrop-blur">
         <div className="flex-1">
-          <div className="text-xl font-bold">Dia {session.dayKey}</div>
+          <div className="text-xl font-bold">{dayLabel(session.dayKey, routine?.days)}{session.comeback && <span className="ml-2 align-middle"><Badge tone="info">Tornada</Badge></span>}</div>
           <div className="tabular text-xs text-muted">{fmtClock((now - new Date(session.startedAt).getTime()) / 1000)} · {doneCount}/{totalSets} sèries</div>
         </div>
         <Button variant="primary" onClick={finish}>Acabar</Button>
@@ -106,6 +119,8 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
 
       <div className="space-y-3">
         {session.flags.adaptation && <Notice tone="info">Adaptació: deixa ~3 repeticions de marge (RIR 3) a cada sèrie.</Notice>}
+        {session.comeback && <Notice tone="info">Tornada després del viatge: encara que siguin 30 minuts, ja compta.</Notice>}
+        {circuit && <Notice tone="info">Circuit: fes un exercici rere l'altre i repeteix {Math.max(...session.entries.map((e) => e.sets.length))} voltes. En marcar cada exercici, passa al següent.</Notice>}
         {session.flags.deload && <Notice tone="warn">Sessió de descàrrega: menys sèries i pes més baix. Sense apurar.</Notice>}
 
         <Checklist title={`Escalfament${session.warmupMin ? ` · ${session.warmupMin} min` : ''}`} items={WARMUP} checked={session.checklist.warmup} defaultOpen={!anyDone}
@@ -123,6 +138,14 @@ function SessionView({ session, sessions, exercises, profile, onExit }: {
             onChange={(fn) => save((s) => fn(s.entries[ei]))}
             onComplete={(si) => completeSet(ei, si)}
             onSwap={() => setPicker({ idx: ei })}
+            alternatives={(entry.altIds ?? []).map((id) => byId.get(id)).filter((x): x is Exercise => !!x)}
+            onAlt={(alt) => {
+              const base = defaultItem(alt, alt.pattern, profile);
+              const item = { ...base, sets: entry.target.sets, repMin: entry.target.repMin, repMax: entry.target.repMax, restSec: entry.target.restSec };
+              const next = buildEntry(item, alt, profile, sessions.filter((x) => x.id !== session.id), session.flags.deload);
+              next.altIds = [entry.exerciseId, ...(entry.altIds ?? []).filter((x) => x !== alt.id)];
+              void save((s) => { s.entries[ei] = next; });
+            }}
             onRemove={() => { if (confirm('Treure aquest exercici de la sessió d\'avui?')) void save((s) => { s.entries.splice(ei, 1); }); }}
           />
         ))}
@@ -203,11 +226,15 @@ function Checklist({ title, items, checked, onToggle, defaultOpen }: {
   );
 }
 
-function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onComplete, onSwap, onRemove }: {
+function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onComplete, onSwap, onRemove, alternatives, onAlt }: {
   entry: SessionEntry; exercise?: Exercise; last?: SessionEntry; step: number; open: boolean;
   onToggle: () => void; onChange: (fn: (e: SessionEntry) => void) => void; onComplete: (si: number) => void;
-  onSwap: () => void; onRemove: () => void;
+  onSwap: () => void; onRemove: () => void; alternatives: Exercise[]; onAlt: (e: Exercise) => void;
 }) {
+  const secs = exercise?.measure === 'seconds';
+  const unit = secs ? ' s' : '';
+  const showWeight = (w: number) => !exercise?.bodyweight || w > 0;
+  const fmtSet = (w: number, r: number) => (showWeight(w) ? `${w.toLocaleString('ca-ES')} kg × ${r}${unit}` : secs ? `${r} s` : `${r} reps`);
   const done = entry.sets.filter((s) => s.done).length;
   const complete = done === entry.sets.length && done > 0;
   const firstPending = entry.sets.findIndex((s) => !s.done);
@@ -222,7 +249,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
         </span>
         <div className="min-w-0 flex-1">
           <div className="font-semibold leading-tight">{exercise?.name ?? 'Exercici'}</div>
-          <div className="text-xs text-muted">{entry.target.sets}×{entry.target.repMin}–{entry.target.repMax} · descans {entry.target.restSec} s</div>
+          <div className="text-xs text-muted">{entry.target.sets}×{entry.target.repMin === entry.target.repMax ? entry.target.repMin : `${entry.target.repMin}–${entry.target.repMax}`}{unit} · descans {entry.target.restSec} s</div>
         </div>
         {open ? <ChevronUp size={20} className="text-muted" /> : <ChevronDown size={20} className="text-muted" />}
       </button>
@@ -230,12 +257,18 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
       {open && (
         <div className="space-y-3 px-4 pb-4">
           {exercise?.note && <div className="text-sm text-muted">📝 {exercise.note}</div>}
+          {alternatives.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-sm">
+              <span className="text-muted">O bé:</span>
+              {alternatives.map((a) => <Button key={a.id} size="sm" onClick={() => onAlt(a)}><Replace size={14} /> {a.name}</Button>)}
+            </div>
+          )}
           {exercise?.footImpact === 'alt' && <Notice tone="warn">Impacte alt al peu: vigila la fascitis o canvia de màquina.</Notice>}
           <div className="rounded-xl bg-surface-2 px-3 py-2 text-sm">
-            <span className="text-muted">Última vegada: </span><strong>{last ? summarizeEntry(last) : '—'}</strong>
+            <span className="text-muted">Última vegada: </span><strong>{last ? summarizeEntry(last, { seconds: secs }) : '—'}</strong>
             {entry.suggestion && (
               <div className="mt-1.5 flex items-start gap-2">
-                <Badge tone={SUGGESTION_TONE[entry.suggestion.kind]}>{SUGGESTION_LABEL[entry.suggestion.kind]}</Badge>
+                <Badge tone={SUGGESTION_TONE[entry.suggestion.kind]}>{entry.suggestion.kind === 'pujar' && exercise?.bodyweight && !entry.target.weightKg ? '↑ Més difícil' : SUGGESTION_LABEL[entry.suggestion.kind]}</Badge>
                 <span className="text-xs text-muted">{entry.suggestion.reason}</span>
               </div>
             )}
@@ -246,9 +279,13 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
               <li key={si} className="rounded-xl border border-line bg-bg p-3">
                 <div className="mb-2 text-sm font-semibold">Sèrie {si + 1}{s.done && <span className="ml-2 text-xs text-accent">feta · editant</span>}</div>
                 <div className="space-y-2">
-                  <Stepper label="Pes" value={s.weightKg} step={step} digits={2} unit="kg" max={500}
-                    onChange={(v) => onChange((e) => { e.sets[si].weightKg = v; })} />
-                  <Stepper label="Repeticions" value={s.reps} step={1} max={100}
+                  {showWeight(s.weightKg) ? (
+                    <Stepper label="Pes" value={s.weightKg} step={step} digits={2} unit="kg" max={500}
+                      onChange={(v) => onChange((e) => { e.sets[si].weightKg = v; })} />
+                  ) : (
+                    <button className="text-xs text-muted underline" onClick={() => onChange((e) => { e.sets[si].weightKg = step; })}>Pes corporal · afegir pes</button>
+                  )}
+                  <Stepper label={secs ? 'Segons' : 'Repeticions'} value={s.reps} step={secs ? 5 : 1} max={secs ? 600 : 100} unit={secs ? 's' : undefined}
                     onChange={(v) => onChange((e) => { e.sets[si].reps = v; })} />
                 </div>
                 {s.done ? (
@@ -263,7 +300,7 @@ function EntryCard({ entry, exercise, last, step, open, onToggle, onChange, onCo
               <li key={si} className={clsx('flex items-center gap-2 rounded-xl px-3 py-2', s.done ? 'bg-surface-2' : 'bg-surface-2/40')}>
                 <button className="flex flex-1 items-center gap-3 text-left" onClick={() => setEditing(si)}>
                   <span className="w-6 text-sm text-muted">S{si + 1}</span>
-                  <span className={clsx('tabular font-semibold', !s.done && 'text-muted')}>{s.weightKg.toLocaleString('ca-ES')} kg × {s.reps}</span>
+                  <span className={clsx('tabular font-semibold', !s.done && 'text-muted')}>{fmtSet(s.weightKg, s.reps)}</span>
                   {s.done && <Check size={16} className="text-accent" />}
                 </button>
                 {s.done && (

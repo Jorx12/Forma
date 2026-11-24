@@ -92,20 +92,30 @@ describe('generador', () => {
   });
 });
 
-describe('pes', () => {
+describe('pes (mitjana setmanal)', () => {
   const w = (date: string, kg: number) => ({ id: date, date, weightKg: kg, source: 'manual' as const });
-  it('ritme, estat i avís de pèrdua ràpida', () => {
-    const data = [w('2026-11-17', 84), w('2026-11-24', 83), w('2026-12-01', 82), w('2026-12-08', 81)];
-    const a = analyzeWeight(P, data, dayNum('2026-12-08'));
-    expect(a.rateKgWeek).toBeCloseTo(-1, 5);
-    expect(a.status).toBe('per_davant');
-    expect(a.tooFast).toBe(true);
-    expect(a.goals[0].forecast).toBeDefined();
+  it('la dada principal és la mitjana de la setmana', () => {
+    const data = [w('2026-11-23', 84.2), w('2026-11-25', 83.6), w('2026-11-27', 83.8)];
+    const a = analyzeWeight(P, data, dayNum('2026-11-27'));
+    expect(a.current).toBeCloseTo(83.87, 2);
+    expect(a.currentN).toBe(3);
   });
-  it('sense avís a ritme moderat', () => {
-    const data = [w('2026-11-17', 84), w('2026-11-24', 83.6), w('2026-12-01', 83.2), w('2026-12-08', 82.8)];
-    const a = analyzeWeight(P, data, dayNum('2026-12-08'));
+  it('avisa si baixa més d\'1 kg per setmana', () => {
+    const data = [w('2026-11-16', 84), w('2026-11-18', 84), w('2026-11-23', 82.8), w('2026-11-25', 82.7)];
+    const a = analyzeWeight(P, data, dayNum('2026-11-25'));
+    expect(a.weeklyChange).toBeCloseTo(-1.25, 2);
+    expect(a.tooFast).toBe(true);
+  });
+  it('sense avís a ritme moderat i en camí segons les fites', () => {
+    const data = [w('2026-11-16', 84), w('2026-11-23', 83.8), w('2026-11-30', 83.6)];
+    const a = analyzeWeight(P, data, dayNum('2026-11-30'));
     expect(a.tooFast).toBe(false);
+    expect(a.status).toBe('en_cami');
+  });
+  it('mode Nadal: l\'objectiu és mantenir', () => {
+    const p = { ...P, modes: { travel: { active: false }, christmas: { active: true, refKg: 83.5 } } };
+    const a = analyzeWeight(p, [w('2026-12-14', 83.7), w('2026-12-16', 83.5)], dayNum('2026-12-16'));
+    expect(a.maintain).toBe(true);
     expect(a.status).toBe('en_cami');
   });
 });
@@ -114,7 +124,7 @@ describe('durada', () => {
   const cat = buildCatalog();
   const byId = new Map(cat.map((e) => [e.id, e]));
   const { days } = generateRoutine(cat, P);
-  it('40 min: 5 escalfament + força + 10 HIIT, dins del temps', () => {
+  it('40 min: 5 escalfament + força + 10 cardio, dins del temps', () => {
     for (const d of days) {
       const p = planSession(d.items, 40, byId, P, true);
       expect(p.warmupMin).toBe(5);
@@ -124,8 +134,8 @@ describe('durada', () => {
       for (const it of p.strength.items) expect(it.sets).toBeGreaterThanOrEqual(2);
     }
   });
-  it('2 h: 8 escalfament i 20 HIIT', () => {
-    const p = planSession(days[0].items, 120, byId, P, true);
+  it('2 h (passades les 4 primeres setmanes): 8 escalfament i 20 de cardio', () => {
+    const p = planSession(days[0].items, 120, byId, P, { cardioOn: true, today: '2027-02-01' });
     expect(p.warmupMin).toBe(8);
     expect(p.cardio?.plannedMin).toBe(20);
     expect(p.totalMin).toBeLessThanOrEqual(121);

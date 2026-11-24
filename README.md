@@ -8,18 +8,24 @@ Quadern personal de pes i gimnàs. És una PWA en català, pensada per al mòbil
 
 | Pantalla | Què hi ha |
 |---|---|
-| **Inici** | Proper entrenament, entrenaments de la setmana (x/3) i ratxa, pes i progrés cap a 75 i 70 kg, calories i proteïna, avís de pesar-te (més de 7 dies) i de fer còpia (més de 14 dies) |
-| **Pes** | Registre ràpid (pes, % de greix, nota), gràfic amb la línia objectiu i les finestres de les fites, IMC, ritme real (regressió de 6 setmanes) comparat amb el necessari, previsió de dates, estat i avís si perds més de l'1 % per setmana durant 3 setmanes |
-| **Entrenar** | Dia proposat (A→B→C), sèries amb botons +/− preomplertes amb l'última vegada, temporitzador de descans amb so i vibració, esforç per sèrie, durada triable de 40 min a 2 h repartida en escalfament (5–8'), força i cardio HIIT (10–20') amb temporitzador d'intervals, resum amb volum i rècords. Si tanques l'app, pots continuar l'entrenament |
-| **Natació** | Registre de sessions (distància, durada, piscina, estil, esforç), ritme /100 m, metres per setmana i historial |
-| **Progrés** | Historial, evolució per exercici (pes màxim, 1RM d'Epley i volum) i constància setmanal |
-| **Més** | Perfil, referència calòrica (Mifflin-St Jeor), rutina (generar, substituir, editar), catàleg de màquines, còpia de seguretat, dades de prova i instal·lació |
+| **Avui** | Sessió que toca segons la setmana tipus (natació dl, Força A dc, Força B dv, extra el cap de setmana), franja de la setmana amb el que s'ha fet (x/3), moure una sessió a un altre dia, registrar activitats extra (pàdel, pitch and putt, caminar), objectiu de la setmana, mitjana setmanal de pes, recordatoris (pesar-se dl/dc/dv, cintura els dilluns, revisió, berenar, 80/20) i modes Viatge i Nadal |
+| **Pes** | Pesades (la dada principal és la **mitjana setmanal**), cintura dels dilluns, gràfic amb les fites mensuals del pla com a línia objectiu i indicadors |
+| **Entrenar** | Força A, Força B o rutina d'hotel. Escalfament, força i cardio (bici, el·líptica o rem: 10 min les 4 primeres setmanes, després 15–20). Sèries preomplertes amb l'última vegada, suggeriment de pujar pes quan totes arriben al màxim del rang, planxa en segons, alternatives (elevacions laterals o face pull) i circuit d'hotel |
+| **Natació** | Minuts i sensació (distància opcional), minuts per setmana i historial |
+| **Progrés** | Historial, gràfic de pes per exercici i constància |
+| **Més** | Revisió setmanal, setmana tipus, alimentació, rutines (editables), perfil, màquines, dades i instal·lació |
 
-**Progressió (doble progressió)**
-- Si fas totes les sèries al màxim del rang, la sessió següent proposa pujar el pes l'increment de la màquina i tornar al mínim de repeticions.
-- Si un dia no arribes al mínim de repeticions, proposa repetir el mateix pes. Si et passa dues sessions seguides, proposa baixar-lo una mica.
-- Les 2 primeres setmanes són d'**adaptació** (RIR 3).
-- Cada 7 setmanes suggereix una **descàrrega**. Es pot configurar.
+**Revisió setmanal (dilluns)**
+- Checklist: mitjana de pes i cintura, sessions /3, berenars /5, dies amb alcohol (màxim 2) i objectiu per a la setmana vinent.
+- Avisos automàtics:
+  - baixar 0,3–0,5 kg: «Vas bé, no canviïs res»;
+  - baixar més d'1 kg: menjar una mica més;
+  - 2 setmanes sense baixar pes ni cintura: treure un dia d'alcohol o un picoteig i afegir 10 min de cardio (no surt en mode Nadal);
+  - 7 dies sense entrenar: «Mai dues setmanes seguides sense entrenar», amb accés a la rutina d'hotel.
+
+**Modes**
+- **Viatge:** les sessions passen a ser la rutina d'hotel. En desactivar-lo, el primer dia laborable queda marcat com a «Tornada: encara que siguin 30 min».
+- **Nadal:** l'objectiu passa a mantenir el pes. Es proposa activar-lo al desembre.
 
 ## Desenvolupament
 
@@ -60,7 +66,7 @@ Si fa més de 14 dies que no exportes, la pantalla d'inici mostra un avís discr
 
 ## Model de dades
 
-Base de dades IndexedDB `forma` (Dexie, esquema v2). Els tipus són a `src/db/types.ts`.
+Base de dades IndexedDB `forma` (Dexie, esquema v3). Els tipus són a `src/db/types.ts`.
 
 | Taula | Contingut |
 |---|---|
@@ -70,7 +76,20 @@ Base de dades IndexedDB `forma` (Dexie, esquema v2). Els tipus són a `src/db/ty
 | `routines` | Rutina activa amb els dies A/B/C i els exercicis (patró, sèries, rang de repeticions, descans) |
 | `sessions` | Entrenaments amb les sèries a dins (pes, reps, feta, esforç), suggeriment de progressió, marques d'adaptació i de descàrrega, checklist |
 | `swims` | Sessions de natació (des de l'esquema v2) |
+| `schedule` | Canvis puntuals del pla per dia: sessions mogudes, tornada de viatge (v3) |
+| `activities` | Activitats extra: pàdel, pitch and putt, caminar (v3) |
+| `weeklyReviews` | Revisions setmanals (v3) |
 | `meta` | Clau/valor: sessió activa, temporitzador, última exportació, tema, còpia de la data d'inici mentre hi ha dades de prova |
 | `bodyMeasurements`, `progressPhotos` | **Preparades per al futur** (mesures corporals i fotos). Encara no tenen pantalla |
 
 El camp `source: 'csv'` de `weighIns` deixa preparada la importació de la bàscula o del rellotge.
+
+### Migracions
+
+- **Esquema (Dexie):** cada versió només afegeix taules (v2: natació; v3: pla setmanal, activitats i revisions). No se n'esborra cap.
+- **Dades (`src/db/migrations.ts`):** s'executen en obrir l'app i només afegeixen o completen informació:
+  - els exercicis nous del pla;
+  - les rutines «Pla personal» (A, B i hotel). L'anterior es conserva, inactiva, per a l'historial;
+  - la setmana tipus, les fites mensuals, els modes i el cardio continu.
+
+  Les preferències, les notes i l'historial no es toquen.

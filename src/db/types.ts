@@ -25,8 +25,13 @@ export interface Profile {
   adaptationWeeks: number;
   /** durada habitual de l'entrenament en minuts (40–120) */
   sessionMinutes?: number;
-  /** bloc de cardio HIIT al final de l'entrenament */
+  /** bloc de cardio al final de l'entrenament */
   cardio?: CardioPrefs;
+  /** setmana tipus: activitat per dia (0 = diumenge … 6 = dissabte) */
+  weekPlan?: Record<number, PlanActivity>;
+  /** fites mensuals per a la línia objectiu */
+  milestones?: Milestone[];
+  modes?: Modes;
   /** null = desactivat */
   deloadEveryWeeks: number | null;
   defaultIncrementKg: { upper: number; lower: number };
@@ -69,9 +74,14 @@ export interface Exercise {
   incrementKg?: number;
   note?: string;
   isCustom: boolean;
+  /** com es mesura: repeticions (per defecte) o segons (planxa) */
+  measure?: 'reps' | 'seconds';
+  /** sense pes extern (pes corporal) */
+  bodyweight?: boolean;
 }
 
-export type DayKey = 'A' | 'B' | 'C';
+/** A/B/C: dies de força · H: rutina d'hotel (pla B per a viatges) */
+export type DayKey = 'A' | 'B' | 'C' | 'H';
 
 export interface RoutineItem {
   exerciseId: string;
@@ -81,11 +91,17 @@ export interface RoutineItem {
   repMin: number;
   repMax: number;
   restSec: number;
+  /** exercicis alternatius (p. ex. elevacions laterals o face pull) */
+  altIds?: string[];
 }
 
 export interface RoutineDay {
   key: DayKey;
   items: RoutineItem[];
+  /** nom visible (p. ex. «Força A», «Hotel») */
+  label?: string;
+  /** circuit: es fan voltes (un exercici rere l'altre) en lloc de sèries seguides */
+  circuit?: boolean;
 }
 
 export interface Routine {
@@ -94,6 +110,10 @@ export interface Routine {
   createdAt: string;
   active: boolean;
   days: RoutineDay[];
+  /** pla fix: no s'hi afegeixen exercicis ni sèries automàticament segons la durada */
+  fixed?: boolean;
+  /** identificador del pla de referència (per poder-lo restaurar) */
+  template?: 'personal-v1';
 }
 
 export type Effort = 'facil' | 'correcte' | 'dur';
@@ -115,6 +135,7 @@ export interface SessionEntry {
   suggestion?: { kind: SuggestionKind; reason: string };
   sets: SetLog[];
   effort?: Effort;
+  altIds?: string[];
 }
 
 export type SessionStatus = 'en_curs' | 'feta' | 'descartada';
@@ -135,8 +156,10 @@ export interface Session {
   targetMinutes?: number;
   /** minuts d'escalfament planificats */
   warmupMin?: number;
-  /** bloc de cardio HIIT (si n'hi ha) */
+  /** bloc de cardio (si n'hi ha) */
   cardio?: CardioLog;
+  /** sessió de tornada després d'un viatge */
+  comeback?: boolean;
   note?: string;
   isDemo?: boolean;
 }
@@ -160,6 +183,8 @@ export interface CardioLog {
   easyStartSec: number;
   easyEndSec: number;
   rounds: number;
+  /** cardio continu (sense intervals): durada en segons */
+  continuousSec?: number;
   plannedMin: number;
   roundsDone: number;
   durationSec: number;
@@ -173,15 +198,69 @@ export interface CardioLog {
 // ── Natació ──
 export type SwimStyle = 'crol' | 'braca' | 'esquena' | 'papallona' | 'mixt';
 
+export type Feeling = 1 | 2 | 3 | 4;
+
 export interface Swim {
   id: string;
   date: string;
   durationMin: number;
+  /** opcional: 0 = no registrada */
   distanceM: number;
+  feeling?: Feeling;
   poolM: 25 | 50;
   style: SwimStyle;
   effort?: Effort;
   note?: string;
+  isDemo?: boolean;
+}
+
+// ── Pla setmanal ──
+export type PlanActivity = 'natacio' | 'forca_A' | 'forca_B' | 'hotel' | 'extra' | 'descans';
+
+export interface Milestone {
+  /** data de la fita (normalment l'últim dia del mes) */
+  date: string;
+  label: string;
+  kgMin: number;
+  kgMax: number;
+}
+
+export interface Modes {
+  travel: { active: boolean; since?: string };
+  christmas: { active: boolean; since?: string; refKg?: number };
+}
+
+/** Canvi puntual del pla per a un dia (moure una sessió, tornada d'un viatge…) */
+export interface ScheduleOverride {
+  date: string;
+  activity: PlanActivity;
+  movedFrom?: string;
+  movedTo?: string;
+  comeback?: boolean;
+}
+
+export type ExtraKind = 'padel' | 'pitch' | 'caminar' | 'altre';
+
+export interface ExtraActivity {
+  id: string;
+  date: string;
+  kind: ExtraKind;
+  minutes: number;
+  feeling?: Feeling;
+  note?: string;
+  isDemo?: boolean;
+}
+
+export interface WeeklyReview {
+  /** dilluns de la setmana revisada (ISO) */
+  week: string;
+  avgKg?: number;
+  waistCm?: number;
+  sessionsDone: number;
+  snacksPlanned: number;
+  alcoholDays: number;
+  nextGoal?: string;
+  savedAt: string;
   isDemo?: boolean;
 }
 

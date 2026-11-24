@@ -1,11 +1,14 @@
-import { ChevronRight, ClipboardList, Database, Dumbbell, Flame, Smartphone, User } from 'lucide-react';
+import { CalendarDays, ChevronRight, ClipboardCheck, ClipboardList, Database, Dumbbell, Flame, Salad, Smartphone, User } from 'lucide-react';
 import { Link } from 'react-router';
 import { Page } from '../components/ui';
 
 const ITEMS = [
+  { to: '/revisio', icon: ClipboardCheck, label: 'Revisió setmanal', sub: 'Cada dilluns: pes, cintura, sessions, berenars, alcohol' },
+  { to: '/mes/setmana', icon: CalendarDays, label: 'Setmana tipus', sub: 'Què toca cada dia' },
+  { to: '/mes/alimentacio', icon: Salad, label: 'Alimentació', sub: 'Plat de referència, berenars i 80/20' },
   { to: '/mes/perfil', icon: User, label: 'Perfil', sub: 'Dades, fites i preferències' },
-  { to: '/mes/calories', icon: Flame, label: 'Referència calòrica', sub: 'Calories i proteïna' },
-  { to: '/mes/rutina', icon: ClipboardList, label: 'Rutina', sub: 'Dies A / B / C' },
+  { to: '/mes/calories', icon: Flame, label: 'Referència calòrica', sub: 'Només informativa' },
+  { to: '/mes/rutina', icon: ClipboardList, label: 'Rutines', sub: 'Força A, Força B i hotel' },
   { to: '/mes/maquines', icon: Dumbbell, label: 'Màquines', sub: 'Catàleg i preferències' },
   { to: '/mes/dades', icon: Database, label: 'Dades', sub: 'Còpia de seguretat i dades de prova' },
   { to: '/mes/installar', icon: Smartphone, label: "Instal·lar l'app", sub: 'Afegir a la pantalla d\'inici' },

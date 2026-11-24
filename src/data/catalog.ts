@@ -88,14 +88,34 @@ const DEFS: Def[] = [
   ['pallof', 'Press Pallof a politja', 'core', 'core', 'dempeus', 'mitja', false, false],
   ['rotacio-tronc-maquina', 'Rotació de tronc a màquina', 'core', 'core', 'assegut', 'baix', false, false],
   ['dead-bug', 'Dead bug', 'core', 'core', 'estirat', 'baix', false, true],
+
+  // Pla personal i rutina d'hotel
+  ['maquina-gluti', 'Màquina de gluti', 'glutis', 'hip', 'assegut', 'baix', true, true],
+  ['esquat-cadira', 'Esquat a la cadira', 'quadriceps', 'knee', 'dempeus', 'baix', true, true],
+  ['flexions', 'Flexions', 'pit', 'push_h', 'estirat', 'baix', true, true],
+  ['rem-motxilla', 'Rem amb motxilla', 'esquena', 'pull_h', 'dempeus', 'baix', true, true],
 ];
+
+/** Camps extra per a exercicis concrets (temps, pes corporal, noms) */
+export const CATALOG_EXTRA: Record<string, Partial<Exercise>> = {
+  'planxa': { measure: 'seconds', bodyweight: true },
+  'pont-gluti': { bodyweight: true },
+  'dead-bug': { bodyweight: true },
+  'elevacio-cames-estirat': { bodyweight: true },
+  'esquat-cadira': { bodyweight: true, note: 'Seure i aixecar-se d\'una cadira, a ritme controlat' },
+  'flexions': { bodyweight: true, note: 'Si costa, recolza els genolls o les mans en una taula' },
+  'rem-motxilla': { note: 'Motxilla plena (llibres, ampolles d\'aigua). Pes opcional' },
+  'jalon-pit': { name: 'Jaló al pit' },
+  'jalon-agafada-estreta': { name: 'Jaló amb agafada estreta' },
+};
 
 export function buildCatalog(): Exercise[] {
   return DEFS.map(([id, name, muscleGroup, pattern, position, footImpact, isCompound, available]) => ({
     id, name, muscleGroup, pattern, position, footImpact, isCompound,
     available: available ?? false,
-    preference: 'neutral',
+    preference: 'neutral' as const,
     isCustom: false,
+    ...CATALOG_EXTRA[id],
   }));
 }
 

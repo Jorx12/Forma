@@ -1,32 +1,42 @@
 import { Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router';
 import { db, uid } from '../db/db';
-import { useProfile, useWeighIns } from '../db/hooks';
+import { useMeasurements, useProfile, useWeighIns } from '../db/hooks';
+import { MetricLine } from '../components/MiniChart';
 import type { Profile, WeighIn } from '../db/types';
 import { Badge, Button, Card, Empty, Field, inputCls, Notice, Page, Sheet, Stat, Stepper } from '../components/ui';
 import { WeightChart } from '../components/WeightChart';
-import { fmtDate, fmtNum, todayISO } from '../lib/dates';
-import { analyzeWeight, bmiLabel, STATUS_LABEL, type WeightAnalysis } from '../lib/weight';
+import { dayNum, fmtDate, fmtNum, todayISO } from '../lib/dates';
+import { analyzeWeight, bmiLabel, statusLabel, type WeightAnalysis } from '../lib/weight';
 
 export function WeightPage() {
   const profile = useProfile();
   const weighIns = useWeighIns();
   const [editing, setEditing] = useState<WeighIn | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const { hash } = useLocation();
+  const ready = !!profile && !!weighIns;
+  useEffect(() => {
+    if (ready && hash === '#cintura') setTimeout(() => document.getElementById('cintura')?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }, [ready, hash]);
   if (!profile || !weighIns) return null;
   const a = analyzeWeight(profile, weighIns);
 
   return (
     <Page title="Pes">
-      <WeighInForm key={a.current} initialKg={a.current} />
+      <p className="-mt-2 text-sm text-muted">Pesa't dilluns, dimecres i divendres al matí, en dejú. La dada que compta és la <strong className="text-text">mitjana setmanal</strong>.</p>
+      <WeighInForm key={a.lastWeighIn?.id ?? 'x'} initialKg={a.lastWeighIn?.weightKg ?? a.current} />
       {a.tooFast && <TooFastNotice a={a} />}
       <Card title="Evolució">
         <WeightChart profile={profile} weighIns={a.sorted} />
       </Card>
       <WeightIndicators profile={profile} a={a} />
+      <WaistCard />
       <Card title="Registres">
         {a.sorted.length === 0 ? <Empty>Encara no hi ha cap pesada.</Empty> : (
           <ul className="divide-y divide-line">
-            {[...a.sorted].reverse().map((w) => (
+            {[...a.sorted].reverse().slice(0, showAll ? undefined : 12).map((w) => (
               <li key={w.id} className="flex items-center gap-3 py-2.5">
                 <div className="flex-1">
                   <div className="tabular font-semibold">{fmtNum(w.weightKg)} kg{w.bodyFatPct != null && <span className="ml-2 text-sm font-normal text-muted">{fmtNum(w.bodyFatPct)} % greix</span>}</div>
@@ -37,6 +47,7 @@ export function WeightPage() {
             ))}
           </ul>
         )}
+        {a.sorted.length > 12 && !showAll && <Button size="sm" variant="ghost" className="mt-2 w-full" onClick={() => setShowAll(true)}>Veure totes ({a.sorted.length})</Button>}
       </Card>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title="Editar pesada">
         {editing && <WeighInEditor w={editing} onDone={() => setEditing(null)} />}
@@ -108,8 +119,7 @@ function WeighInEditor({ w, onDone }: { w: WeighIn; onDone: () => void }) {
 export function TooFastNotice({ a }: { a: WeightAnalysis }) {
   return (
     <Notice tone="warn">
-      <strong>Potser estàs perdent pes massa ràpid.</strong> Les últimes 3 setmanes has baixat més de l'1 % del pes cada setmana
-      ({a.weeklyLossPct.map((p) => `${fmtNum(p)} %`).join(', ')}). Valora menjar una mica més per protegir el múscul i el rendiment.
+      <strong>Estàs baixant més d'1 kg per setmana</strong> ({fmtNum(Math.abs(a.weeklyChange ?? 0), 2)} kg). Menja una mica més per protegir el múscul i el rendiment.
     </Notice>
   );
 }
@@ -122,13 +132,15 @@ const rate = (r?: number) => (r === undefined ? '—' : `${r > 0 ? '+' : ''}${fm
 
 export function WeightIndicators({ profile, a }: { profile: Profile; a: WeightAnalysis }) {
   return (
-    <Card title="Indicadors" right={<Badge tone={statusTone(a.status)}>{STATUS_LABEL[a.status]}</Badge>}>
+    <Card title="Indicadors" right={<Badge tone={statusTone(a.status)}>{statusLabel(a)}</Badge>}>
+      {a.maintain && <p className="mb-3 text-sm text-info">🎄 Mode Nadal: l'objectiu és mantenir-te a {fmtNum(profile.modes?.christmas.refKg ?? a.current)} kg (±0,5).</p>}
       <div className="grid grid-cols-2 gap-2">
-        <Stat label="Pes actual" value={`${fmtNum(a.current)} kg`} sub={a.currentDate ? fmtDate(a.currentDate) : 'pes inicial'} />
+        <Stat label="Mitjana setmanal" value={`${fmtNum(a.current)} kg`} sub={a.currentWeek ? `setm. ${fmtDate(a.currentWeek, 'd MMM')} · ${a.currentN} pesades` : 'pes inicial'} tone="accent" />
+        <Stat label="Canvi setmanal" value={a.weeklyChange !== undefined ? `${a.weeklyChange > 0 ? '+' : ''}${fmtNum(a.weeklyChange, 2)} kg` : '—'} sub="mitjana vs setmana anterior" />
         <Stat label="Perduts" value={`${fmtNum(a.lostKg)} kg`} sub={`des de ${fmtNum(profile.startWeightKg)} kg`} tone={a.lostKg > 0 ? 'accent' : undefined} />
         <Stat label="IMC" value={fmtNum(a.bmi)} sub={bmiLabel(a.bmi)} />
         <Stat label="% greix" value={a.bodyFat != null ? `${fmtNum(a.bodyFat)} %` : '—'} sub="última mesura" />
-        <Stat label="Ritme real" value={`${rate(a.rateKgWeek)} kg/set.`} sub={a.rateWindowWeeks ? `regressió ${a.rateWindowWeeks} setmanes` : 'calen 3 pesades en 2+ setm.'} />
+        <Stat label="Ritme real" value={`${rate(a.rateKgWeek)} kg/set.`} sub={a.rateWindowWeeks ? `${a.rateWindowWeeks} mitjanes setmanals` : 'calen 2 setmanes de pesades'} />
         <Stat label="Ritme necessari" value={`${rate(a.requiredKgWeek)} kg/set.`} sub={`pla: ${rate(a.plannedKgWeek)} kg/set.`} />
       </div>
       <div className="mt-3 space-y-2">
@@ -147,10 +159,56 @@ export function WeightIndicators({ profile, a }: { profile: Profile; a: WeightAn
       </div>
       {a.status !== 'sense_dades' && (
         <p className="mt-3 text-xs text-muted">
-          Segons la línia objectiu, avui hauries d'estar a {fmtNum(a.expectedNow)} kg ({a.diffVsPlan > 0 ? '+' : ''}{fmtNum(a.diffVsPlan)} kg).
+          Segons les fites del pla, aquesta setmana hauries d'estar a {fmtNum(a.expectedNow)} kg ({a.diffVsPlan > 0 ? '+' : ''}{fmtNum(a.diffVsPlan)} kg).
           Marge «en camí»: ±0,5 kg.
         </p>
       )}
     </Card>
+  );
+}
+
+function WaistCard() {
+  const measures = useMeasurements();
+  const [cm, setCm] = useState<number | null>(null);
+  const [date, setDate] = useState(todayISO());
+  if (!measures) return null;
+  const waist = measures.filter((m) => m.waistCm != null);
+  const last = waist[waist.length - 1];
+  const value = cm ?? last?.waistCm ?? 95;
+  const first = waist[0];
+  return (
+    <section id="cintura">
+      <Card title="Cintura (cada dilluns)">
+        <Stepper value={value} onChange={setCm} step={0.5} digits={1} min={50} max={200} unit="cm" />
+        <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+          <input type="date" className={inputCls} value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} />
+          <Button variant="primary" onClick={async () => {
+            const existing = await db.bodyMeasurements.where('date').equals(date).first();
+            await db.bodyMeasurements.put({ ...(existing ?? {}), id: existing?.id ?? uid(), date, waistCm: Math.round(value * 10) / 10 });
+            setCm(null);
+          }}>Desar</Button>
+        </div>
+        <p className="mt-2 text-xs text-muted">Mesura-la al melic, de peu, relaxat i després d'expulsar l'aire.</p>
+        {waist.length > 0 && (
+          <>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Stat label="Última" value={`${fmtNum(last.waistCm!)} cm`} sub={fmtDate(last.date)} />
+              <Stat label="Des de l'inici" value={`${last.waistCm! - first.waistCm! > 0 ? '+' : ''}${fmtNum(last.waistCm! - first.waistCm!)} cm`} tone={last.waistCm! < first.waistCm! ? 'accent' : undefined} sub={`${fmtNum(first.waistCm!)} cm el ${fmtDate(first.date, 'd MMM')}`} />
+            </div>
+            {waist.length > 1 && <div className="mt-3"><MetricLine data={waist.map((m) => ({ x: dayNum(m.date), y: m.waistCm! }))} unit="cm" color="var(--warn)" height={150} /></div>}
+            <ul className="mt-2 divide-y divide-line text-sm">
+              {[...waist].reverse().slice(0, 6).map((m) => (
+                <li key={m.id} className="flex items-center justify-between py-2">
+                  <span className="text-muted">{fmtDate(m.date)}{m.isDemo && ' · prova'}</span>
+                  <span className="flex items-center gap-2"><strong className="tabular">{fmtNum(m.waistCm!)} cm</strong>
+                    <button aria-label="Esborrar" className="text-muted" onClick={async () => { if (confirm('Esborrar aquesta mesura?')) await db.bodyMeasurements.delete(m.id); }}><Trash2 size={16} /></button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </Card>
+    </section>
   );
 }

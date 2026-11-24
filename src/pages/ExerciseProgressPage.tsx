@@ -46,7 +46,7 @@ export function ExerciseProgressPage() {
               {hist.map(({ session, entry }) => (
                 <li key={session.id} className="flex justify-between gap-2 py-2 text-sm">
                   <span className="text-muted">{fmtDate(session.startedAt.slice(0, 10), 'd MMM yy')}</span>
-                  <span className="text-right font-medium">{summarizeEntry(entry)}</span>
+                  <span className="text-right font-medium">{summarizeEntry(entry, { seconds: e?.measure === 'seconds' })}</span>
                 </li>
               ))}
             </ul>

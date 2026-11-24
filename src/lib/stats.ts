@@ -21,10 +21,14 @@ export function entryBest(e: SessionEntry) {
 }
 
 /** Resum curt d'una entrada: «3×10 a 40 kg» o «40 kg: 12, 10, 9» */
-export function summarizeEntry(e: SessionEntry): string {
+export function summarizeEntry(e: SessionEntry, opts: { seconds?: boolean } = {}): string {
   const sets = doneSets(e);
   if (!sets.length) return 'cap sèrie feta';
   const w = sets.map((s) => s.weightKg), r = sets.map((s) => s.reps);
+  const u = opts.seconds ? ' s' : '';
+  if (w.every((x) => x === 0)) {
+    return r.every((x) => x === r[0]) ? `${sets.length}×${r[0]}${u}` : `${r.join(', ')}${u || ' reps'}`;
+  }
   const fmtW = (x: number) => `${x.toLocaleString('ca-ES')} kg`;
   const sameW = w.every((x) => x === w[0]);
   const sameR = r.every((x) => x === r[0]);

@@ -1,6 +1,7 @@
 import { buildCatalog } from '../data/catalog';
 import { DEFAULT_PROFILE } from '../data/defaults';
 import { db } from './db';
+import { runMigrations } from './migrations';
 
 /** Crea el perfil i el catàleg el primer cop que s'obre l'app */
 export async function ensureSeed() {
@@ -9,6 +10,7 @@ export async function ensureSeed() {
     if (!(await db.profile.get('me'))) await db.profile.put(DEFAULT_PROFILE);
     if ((await db.exercises.count()) === 0) await db.exercises.bulkPut(buildCatalog());
   });
+  await runMigrations();
   // Demana emmagatzematge persistent perquè el navegador no esborri les dades
   try { await navigator.storage?.persist?.(); } catch { /* ignore */ }
 }

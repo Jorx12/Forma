@@ -34,14 +34,14 @@ function History() {
   const list = completed(sessions).filter((s) => day === 'tots' || s.dayKey === day);
   return (
     <>
-      <Segmented size="sm" value={day} onChange={setDay} options={[{ value: 'tots', label: 'Tots' }, { value: 'A', label: 'A' }, { value: 'B', label: 'B' }, { value: 'C', label: 'C' }]} />
+      <Segmented size="sm" value={day} onChange={setDay} options={[{ value: 'tots', label: 'Tots' }, ...[...new Set(completed(sessions).map((s) => s.dayKey))].sort().map((k) => ({ value: k, label: k === 'H' ? 'Hotel' : k }))]} />
       {list.length === 0 ? <Card><Empty>Encara no hi ha entrenaments acabats.</Empty></Card> : (
         <ul className="space-y-2">
           {list.map((s) => (
             <li key={s.id}>
               <Link to={`/progres/sessio/${s.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 active:bg-surface-2">
                 <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2">
-                  <span className="text-lg font-bold leading-none">{s.dayKey}</span>
+                  <span className="text-lg font-bold leading-none">{s.dayKey === 'H' ? '🧳' : s.dayKey}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">{fmtDate(s.startedAt.slice(0, 10), "EEE d MMM yyyy")}

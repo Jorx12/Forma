@@ -9,5 +9,9 @@ export const useActiveRoutine = () =>
 export const useSessions = () =>
   useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().toArray(), []);
 export const useSwims = () => useLiveQuery(() => db.swims.orderBy('date').reverse().toArray(), []);
+export const useSchedule = () => useLiveQuery(async () => new Map((await db.schedule.toArray()).map((o) => [o.date, o])), []);
+export const useActivities = () => useLiveQuery(() => db.activities.orderBy('date').reverse().toArray(), []);
+export const useReviews = () => useLiveQuery(() => db.weeklyReviews.orderBy('week').reverse().toArray(), []);
+export const useMeasurements = () => useLiveQuery(() => db.bodyMeasurements.orderBy('date').toArray(), []);
 export const useMeta = <T,>(key: string) =>
   useLiveQuery(async () => ((await db.meta.get(key))?.value as T | undefined) ?? null, [key]);

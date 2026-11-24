@@ -1,9 +1,10 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type {
-  BodyMeasurement, Exercise, MetaRow, Profile, ProgressPhoto, Routine, Session, Swim, WeighIn,
+  BodyMeasurement, Exercise, ExtraActivity, MetaRow, Profile, ProgressPhoto, Routine, ScheduleOverride, Session, Swim,
+  WeeklyReview, WeighIn,
 } from './types';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export class FormaDB extends Dexie {
   profile!: EntityTable<Profile, 'id'>;
@@ -15,6 +16,9 @@ export class FormaDB extends Dexie {
   bodyMeasurements!: EntityTable<BodyMeasurement, 'id'>;
   progressPhotos!: EntityTable<ProgressPhoto, 'id'>;
   swims!: EntityTable<Swim, 'id'>;
+  schedule!: EntityTable<ScheduleOverride, 'date'>;
+  activities!: EntityTable<ExtraActivity, 'id'>;
+  weeklyReviews!: EntityTable<WeeklyReview, 'week'>;
 
   constructor() {
     super('forma');
@@ -30,6 +34,8 @@ export class FormaDB extends Dexie {
     });
     // v2: natació
     this.version(2).stores({ swims: 'id, date' });
+    // v3: pla setmanal, activitats extra i revisions setmanals (les dades existents es mantenen)
+    this.version(3).stores({ schedule: 'date', activities: 'id, date', weeklyReviews: 'week' });
   }
 }
 
